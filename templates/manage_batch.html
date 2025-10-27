@@ -277,13 +277,41 @@
 
             <div id="lab-section" >
                 <label>Choose Suitable Lab</label>
-                <select name="lab_classroom_id">
+                <select name="lab_classroom_id1">
                 <option value="">-- Select Lab --</option>
                 {% for room in classrooms %}
                     <option value="{{ room.id }}">{{ room.name }}</option>
                 {% endfor %}
                 </select>
             </div>
+            <div id="lab-section" >
+                <label>Choose Suitable Lab</label>
+                <select name="lab_classroom_id2">
+                <option value="">-- Select Lab --</option>
+                {% for room in classrooms %}
+                    <option value="{{ room.id }}">{{ room.name }}</option>
+                {% endfor %}
+                </select>
+            </div>
+            <div id="lab-section" >
+                <label>Choose Suitable Lab</label>
+                <select name="lab_classroom_id3">
+                <option value="">-- Select Lab --</option>
+                {% for room in classrooms %}
+                    <option value="{{ room.id }}">{{ room.name }}</option>
+                {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                    <label>Lab Professor</label>
+                    <select name="professor_id_lab" required>
+                        <option value="">-- Select Professor --</option>
+                        {% for prof in professors %}
+                        <option value="{{ prof.id }}">{{ prof.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
             
             <div class="form-row">
                 <div class="checkbox-group">

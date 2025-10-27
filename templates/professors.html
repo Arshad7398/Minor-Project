@@ -270,12 +270,63 @@
                     <label for="professor_email">Email</label>
                     <input type="email" id="professor_email" name="email" placeholder="Enter Email" required>
                 </div>
+
+                 <div class="form-group">
+                    <label>Classrooms</label>
+                    <select name="professor_id1" required>
+                        <option value="">-- Select Professor --</option>
+                        {% for prof in classrooms %}
+                        <option value="{{ prof.id }}">{{ prof.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Classrooms</label>
+                    <select name="professor_id2" required>
+                        <option value="">-- Select Professor --</option>
+                        {% for prof in classrooms %}
+                        <option value="{{ prof.id }}">{{ prof.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Classrooms</label>
+                    <select name="professor_id3" required>
+                        <option value="">-- Select Professor --</option>
+                        {% for prof in classrooms %}
+                        <option value="{{ prof.id }}">{{ prof.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Classrooms</label>
+                    <select name="professor_id4" required>
+                        <option value="">-- Select Professor --</option>
+                        {% for prof in classrooms %}
+                        <option value="{{ prof.id }}">{{ prof.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Classrooms</label>
+                    <select name="professor_id5" required>
+                        <option value="">-- Select Professor --</option>
+                        {% for prof in classrooms %}
+                        <option value="{{ prof.id }}">{{ prof.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
                 
                 <div class="btn-group">
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save"></i> Save Professor Details
                     </button>
                 </div>
+
             </form>
         </div>
         

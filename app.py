@@ -36,8 +36,12 @@ class Course(db.Model):
     priority_evening = db.Column(db.Boolean, default=False)# for evening shif
     avoid_day = db.Column(db.Integer, default=-1)# to avoid any day
     professor_id = db.Column(db.Integer, db.ForeignKey('professor.id'), nullable=True)
-    lab_id = db.Column(db.Integer, db.ForeignKey('lab.id'), nullable=True)
+    lab_professor_id = db.Column(db.Integer, db.ForeignKey('professor.id'), nullable=True)
+    lab_id1 = db.Column(db.Integer, db.ForeignKey('lab.id'), nullable=True)
+    lab_id2= db.Column(db.Integer, db.ForeignKey('lab.id'), nullable=True)
+    lab_id3 = db.Column(db.Integer, db.ForeignKey('lab.id'), nullable=True)
     batch_id= db.Column(db.Integer, db.ForeignKey('batch.id'),nullable=True)
+    lab_id = db.Column(db.Integer, db.ForeignKey('lab.id'), nullable=True,default=1)
 
 
 # this is added
@@ -53,6 +57,12 @@ class Professor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
     email = db.Column(db.String(100), nullable=False, unique=True)
+
+    priority_classroom_1 = db.Column(db.Integer, db.ForeignKey('classroom.id'), nullable=True)
+    priority_classroom_2 = db.Column(db.Integer, db.ForeignKey('classroom.id'), nullable=True)
+    priority_classroom_3 = db.Column(db.Integer, db.ForeignKey('classroom.id'), nullable=True)
+    priority_classroom_4 = db.Column(db.Integer, db.ForeignKey('classroom.id'), nullable=True)
+    priority_classroom_5 = db.Column(db.Integer, db.ForeignKey('classroom.id'), nullable=True)
     #department = db.Column(db.String(50), nullable=False)
     #designation = db.Column(db.String(50))  # e.g., Lecturer, Assistant Prof, etc.
     #max_hours_per_day = db.Column(db.Integer, default=6)  # for timetable allocation
@@ -162,15 +172,51 @@ def is_slot_available(course, day, slot, is_lab=False):
     return not (existing_schedule or professor_schedule)
 
 
+def is_slot_available_lab_priority1(course, day, slot, is_lab=False):
+    existing_schedule = Schedule.query.filter_by(
+        batch_id=course.batch_id, day=day, slot=slot
+    ).first()
+    professor_schedule = Schedule.query.filter_by(
+        professor_id=course.lab_professor_id, day=day, slot=slot
+    ).first()
+    lab_schedule = Schedule.query.filter_by(
+        lab_id=course.lab_id1, day=day, slot=slot
+    ).first()
+    return not (existing_schedule or professor_schedule or lab_schedule)
+
+def is_slot_available_lab_priority2(course, day, slot, is_lab=False):
+    existing_schedule = Schedule.query.filter_by(
+        batch_id=course.batch_id, day=day, slot=slot
+    ).first()
+    professor_schedule = Schedule.query.filter_by(
+        professor_id=course.lab_professor_id, day=day, slot=slot
+    ).first()
+    lab_schedule = Schedule.query.filter_by(
+        lab_id=course.lab_id2, day=day, slot=slot
+    ).first()
+    return not (existing_schedule or professor_schedule or lab_schedule)
+
+def is_slot_available_lab_priority3(course, day, slot, is_lab=False):
+    existing_schedule = Schedule.query.filter_by(
+        batch_id=course.batch_id, day=day, slot=slot
+    ).first()
+    professor_schedule = Schedule.query.filter_by(
+        professor_id=course.lab_professor_id, day=day, slot=slot
+    ).first()
+    lab_schedule = Schedule.query.filter_by(
+        lab_id=course.lab_id3, day=day, slot=slot
+    ).first()
+    return not (existing_schedule or professor_schedule or lab_schedule)
+
+
 def is_slot_available_lab(course, day, slot, is_lab=False):
     existing_schedule = Schedule.query.filter_by(
         batch_id=course.batch_id, day=day, slot=slot
     ).first()
     professor_schedule = Schedule.query.filter_by(
-        professor_id=course.professor_id, day=day, slot=slot
+        professor_id=course.lab_professor_id, day=day, slot=slot
     ).first()
     return not (existing_schedule or professor_schedule)
-
 
 def generate_excel(batch_ids):
     if not batch_ids:
@@ -288,6 +334,7 @@ def create_batch():
 
 @app.route('/professors',methods=['GET','POST'])
 def manage_professors():
+    classrooms = Classroom.query.all()
     if request.method == "POST":
         if 'file' in request.files:
             file = request.files["file"]
@@ -335,9 +382,14 @@ def manage_professors():
         else:
             name = request.form.get("name")
             email = request.form.get("email")
+            priority1=request.form.get("professor_id1")
+            priority2=request.form.get("professor_id2")
+            priority3=request.form.get("professor_id3")
+            priority4=request.form.get("professor_id4")
+            priority5=request.form.get("professor_id5")
             flash(f'{name} + {email}')
             if name and email:
-                new_professor = Professor(name=name, email=email)
+                new_professor = Professor(name=name, email=email,priority_classroom_1=priority1,priority_classroom_2=priority2,priority_classroom_3=priority3,priority_classroom_4=priority4,priority_classroom_5=priority5)
                 db.session.add(new_professor)
                 try:
                     db.session.commit()
@@ -348,7 +400,7 @@ def manage_professors():
 
         return redirect(url_for("manage_professors"))
     professors = Professor.query.all()
-    return render_template('professors.html', professors=professors)
+    return render_template('professors.html', professors=professors, classrooms=classrooms)
     """print("All classrooms in database:")
     for c in classrooms:
         print(f"ID: {c.id}, Name: {c.name}, Capacity: {c.capacity}")"""
@@ -545,6 +597,7 @@ def manage_batch(batch_id):
         course_name = request.form['course_name']
         credits = int(request.form['credits'])
         professor_id = request.form.get('professor_id')
+        lab_professor_id=request.form.get('professor_id_lab')
         is_lab = 'is_lab' in request.form
         priority = 'priority' in request.form
         #priority_type = request.form.get('priority_type')  # Get the priority type
@@ -553,7 +606,9 @@ def manage_batch(batch_id):
         priority_day='priority_day' in request.form
         #priority_day_type=request.form.get('priority_day_type')
         avoid_day = request.form.get('avoid_day')  # Get the selected day to avoid
-        lab_classroom_id = request.form.get('lab_classroom_id') if is_lab else None
+        lab_classroom_id1 = request.form.get('lab_classroom_id1') if is_lab else None
+        lab_classroom_id2 = request.form.get('lab_classroom_id2') if is_lab else None
+        lab_classroom_id3 = request.form.get('lab_classroom_id3') if is_lab else None
 
 
         if avoid_day:
@@ -570,7 +625,10 @@ def manage_batch(batch_id):
                 priority_morning=priority_day,
                 batch_id=batch_id,
                 priority_evening=priority_shift,
-                lab_id=int(lab_classroom_id) if lab_classroom_id else None
+                lab_professor_id=lab_professor_id,
+                lab_id1=int(lab_classroom_id1) if lab_classroom_id1 else None,
+                lab_id2=int(lab_classroom_id2) if lab_classroom_id2 else None,
+                lab_id3=int(lab_classroom_id3) if lab_classroom_id3 else None
             )
             try:
                 db.session.add(new_course)
@@ -749,30 +807,91 @@ def get_timetable():
         db.session.commit()
 
         for course in courses_with_lab:
-            morning_lab = []
-            evening_lab = []
+            morning_labp1 = []
+            evening_labp1 = []
+            morning_labp2 = []
+            evening_labp2 = []
+            morning_labp3 = []
+            evening_labp3 = []
+            other=[]
             for day in range(5):
                     if day == course.avoid_day:
                         continue 
                     for slot in range(3):  # Check up to slot 7 for consecutive slots
                         if slot != 4 :
-                            if is_slot_available_lab(course, day, slot) and is_slot_available_lab(course, day, slot + 1):
-                                morning_lab.append((day, slot))
+                            if is_slot_available_lab_priority1(course, day, slot) and is_slot_available_lab_priority1(course, day, slot + 1):
+                                morning_labp1.append((day, slot))
                                 break
             for day in range(5):
                     if day == course.avoid_day:
                         continue 
                     for slot in range(5,9):  # Check up to slot 7 for consecutive slots
-                        if is_slot_available_lab(course, day, slot) and is_slot_available_lab(course, day, slot + 1):
-                            evening_lab.append((day, slot))
+                        if is_slot_available_lab_priority1(course, day, slot) and is_slot_available_lab_priority1(course, day, slot + 1):
+                            evening_labp1.append((day, slot))
+                            break
+            
+            for day in range(5):
+                    if day == course.avoid_day:
+                        continue 
+                    for slot in range(3):  # Check up to slot 7 for consecutive slots
+                        if slot != 4 :
+                            if is_slot_available_lab_priority2(course, day, slot) and is_slot_available_lab_priority2(course, day, slot + 1):
+                                morning_labp2.append((day, slot))
+                                break
+            for day in range(5):
+                    if day == course.avoid_day:
+                        continue 
+                    for slot in range(5,9):  # Check up to slot 7 for consecutive slots
+                        if is_slot_available_lab_priority2(course, day, slot) and is_slot_available_lab_priority2(course, day, slot + 1):
+                            evening_labp2.append((day, slot))
+                            break
+            
+            for day in range(5):
+                    if day == course.avoid_day:
+                        continue 
+                    for slot in range(3):  # Check up to slot 7 for consecutive slots
+                        if slot != 4 :
+                            if is_slot_available_lab_priority3(course, day, slot) and is_slot_available_lab_priority3(course, day, slot + 1):
+                                morning_labp3.append((day, slot))
+                                break
+            for day in range(5):
+                    if day == course.avoid_day:
+                        continue 
+                    for slot in range(5,9):  # Check up to slot 7 for consecutive slots
+                        if is_slot_available_lab_priority3(course, day, slot) and is_slot_available_lab_priority3(course, day, slot + 1):
+                            evening_labp3.append((day, slot))
                             break
 
+            for day in range(5): 
+                    for slot in range(9):  # Check up to slot 7 for consecutive slots
+                        if slot != 4 and slot!=5:
+                            if is_slot_available_lab(course, day, slot) and is_slot_available_lab(course, day, slot + 1):
+                                other.append((day, slot))
+                                break
             day = None
             start_slot = None
-            if evening_lab:
-                day, start_slot = random.choice(evening_lab)
-            elif morning_lab:
-                day,start_slot = random.choice(morning_lab)
+            lab_assigned=None
+            if evening_labp1:
+                day, start_slot = random.choice(evening_labp1)
+                lab_assigned=course.lab_id1
+            elif morning_labp1:
+                day,start_slot = random.choice(morning_labp1)
+                lab_assigned=course.lab_id1
+            elif evening_labp2:
+                day,start_slot = random.choice(evening_labp2)
+                lab_assigned=course.lab_id2
+            elif morning_labp2:
+                day,start_slot = random.choice(morning_labp2)
+                lab_assigned=course.lab_id2
+            elif evening_labp3:
+                day,start_slot = random.choice(evening_labp3)
+                lab_assigned=course.lab_id3
+            elif morning_labp3:
+                day,start_slot = random.choice(morning_labp3)
+                lab_assigned=course.lab_id3
+            elif other:
+                day,start_slot=random.choice(other)
+                lab_assigned=find_available_lab(day,start_slot)
             else:
                 print(f"No available slots for course {course.name}")
                 continue  # Skip this iteration if no slots available
@@ -781,7 +900,7 @@ def get_timetable():
                     batch_id=course.batch_id,
                     course_id=course.id,
                     professor_id=course.professor_id,
-                    lab_id=course.lab_id,
+                    lab_id=lab_assigned,
                     day=day,
                     slot=start_slot + offset,
                     classroom_id= None
