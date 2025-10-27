@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professors</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>👨‍🏫 Professors List</h1>
+
+        <div class="batch-list">
+            {% for batch in batches %}
+            <a href="{{ url_for('specific_batch_timetable', id=batch.id) }}" 
+            class="batch-link" 
+            style="display: block; text-decoration: none; color: black; border: 1px solid #ccc; 
+                    padding: 10px; margin-bottom: 8px; border-radius: 8px;">
+                <strong>ID:</strong> {{ batch.id }}<br>
+                <strong>Name:</strong> {{ batch.name }}<br>
+                <strong>Capacity:</strong> {{ batch.capacity }}
+            </a>
+            {% endfor %}
+        </div>
+
+
+        <a href="{{ url_for('get_timetable') }}"><button class="btn back">⬅ Back</button></a>
+    </div>
+</body>
+</html>

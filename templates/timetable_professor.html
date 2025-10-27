@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professors</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>👨‍🏫 Professors List</h1>
+
+        <table class="prof-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Department</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for prof in professors %}
+                <tr>
+                    <td>{{ prof.id }}</td>
+                    <td>
+                        <a href="{{ url_for('specific_professor_timetable', id=prof.id)}}">
+                            {{ prof.name }}
+                        </a>
+                    </td>
+                    <td>{{ prof.email }}</td>
+                </tr>
+                {% endfor %}
+
+            </tbody>
+        </table>
+
+        <a href="{{ url_for('get_timetable') }}"><button class="btn back">⬅ Back</button></a>
+    </div>
+</body>
+</html>
