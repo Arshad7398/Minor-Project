@@ -25,6 +25,7 @@ class Classroom(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
     capacity = db.Column(db.Integer, nullable=False)
+    building_id = db.Column(db.Integer, db.ForeignKey('building.id'), nullable=False)
 
 class Course(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -41,8 +42,13 @@ class Course(db.Model):
     lab_id2= db.Column(db.Integer, db.ForeignKey('lab.id'), nullable=True)
     lab_id3 = db.Column(db.Integer, db.ForeignKey('lab.id'), nullable=True)
     batch_id= db.Column(db.Integer, db.ForeignKey('batch.id'),nullable=True)
-    lab_id = db.Column(db.Integer, db.ForeignKey('lab.id'), nullable=True,default=1)
 
+
+class Building(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    # Relationship: One building → many classrooms
+    classrooms = db.relationship('Classroom', backref='building', lazy=True)
 
 # this is added
 """
@@ -56,13 +62,11 @@ professor_courses = db.Table(
 class Professor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
-    email = db.Column(db.String(100), nullable=False, unique=True)
+    #email = db.Column(db.String(100), nullable=False, unique=True)
 
-    priority_classroom_1 = db.Column(db.Integer, db.ForeignKey('classroom.id'), nullable=True)
-    priority_classroom_2 = db.Column(db.Integer, db.ForeignKey('classroom.id'), nullable=True)
-    priority_classroom_3 = db.Column(db.Integer, db.ForeignKey('classroom.id'), nullable=True)
-    priority_classroom_4 = db.Column(db.Integer, db.ForeignKey('classroom.id'), nullable=True)
-    priority_classroom_5 = db.Column(db.Integer, db.ForeignKey('classroom.id'), nullable=True)
+    priority_classroom_1 = db.Column(db.Integer, db.ForeignKey('building.id'), nullable=True)
+    priority_classroom_2 = db.Column(db.Integer, db.ForeignKey('building.id'), nullable=True)
+    priority_classroom_3 = db.Column(db.Integer, db.ForeignKey('building.id'), nullable=True)
     #department = db.Column(db.String(50), nullable=False)
     #designation = db.Column(db.String(50))  # e.g., Lecturer, Assistant Prof, etc.
     #max_hours_per_day = db.Column(db.Integer, default=6)  # for timetable allocation
@@ -100,6 +104,7 @@ class Batch(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
     capacity = db.Column(db.Integer, nullable=False)
+    courses = db.relationship('Course', backref='batch', lazy=True)
 
 
 """removed
@@ -118,6 +123,20 @@ class Schedule(db.Model):
     day = db.Column(db.Integer, nullable=False)  # 0-4 for Monday-Friday
     slot = db.Column(db.Integer, nullable=False)  # 0-8 for time slots
 
+
+def find_available_classroom_with_priorityroom(day, slot,classroom_id):
+    classrooms = Classroom.query.filter_by(building_id=classroom_id)
+    for classroom in classrooms:
+        slot_occupied = Schedule.query.filter_by(
+            classroom_id=classroom.id, day=day, slot=slot
+        ).first()
+        slot_occupied2 = Schedule.query.filter_by(
+            classroom_id=classroom.id, day=day, slot=slot+1
+        ).first()
+        if not (slot_occupied or slot_occupied2):
+            return classroom  # classroom is free for both slots
+    return None
+
 # Helper Functions
 def find_available_classroom(day, slot):
     all_classrooms = Classroom.query.all()
@@ -134,7 +153,17 @@ def find_available_classroom(day, slot):
     return None
 
 
-def find_one_hour_classroom(day,slot):
+def find_available_classroom_with_priorityroom_onehour(day,slot,classroom_id):
+    classrooms = Classroom.query.filter_by(building_id=classroom_id)
+    for classroom in classrooms:
+        slot_occupied = Schedule.query.filter_by(
+            classroom_id=classroom.id, day=day, slot=slot
+        ).first()
+        if not slot_occupied:
+            return classroom  # classroom is free for both slots
+    return None
+
+def find_available_classroom_onehour(day,slot):
     all_classrooms = Classroom.query.all()
     for classroom in all_classrooms:
         slot_occupied = Schedule.query.filter_by(
@@ -162,15 +191,29 @@ def find_available_lab(day, slot,id):
             return lab
     return None
 
-def is_slot_available(course, day, slot, is_lab=False):
+def is_slot_available(course, day, slot, building_id):
     existing_schedule = Schedule.query.filter_by(
         batch_id=course["batch_id"], day=day, slot=slot
     ).first()
     professor_schedule = Schedule.query.filter_by(
         professor_id=course["professor_id"], day=day, slot=slot
     ).first()
-    return not (existing_schedule or professor_schedule)
+    if existing_schedule or professor_schedule:
+        return False
+    classrooms=None
+    if(building_id==-1):
+        classrooms=Classroom.query.all()
+    else :
+        classrooms=Classroom.query.filter_by(building_id=building_id)
 
+    for classroom in classrooms:
+        classroom_schedule = Schedule.query.filter_by(
+            classroom_id=classroom.id, day=day, slot=slot
+        ).first()
+
+        if not classroom_schedule:
+            return True
+    return False
 
 def is_slot_available_lab_priority1(course, day, slot, is_lab=False):
     existing_schedule = Schedule.query.filter_by(
@@ -334,7 +377,7 @@ def create_batch():
 
 @app.route('/professors',methods=['GET','POST'])
 def manage_professors():
-    classrooms = Classroom.query.all()
+    classrooms = Building.query.all()
     if request.method == "POST":
         if 'file' in request.files:
             file = request.files["file"]
@@ -381,15 +424,13 @@ def manage_professors():
                     flash(f'Error processing file: {str(e)}', 'error')
         else:
             name = request.form.get("name")
-            email = request.form.get("email")
+           # email = request.form.get("email")
             priority1=request.form.get("professor_id1")
             priority2=request.form.get("professor_id2")
             priority3=request.form.get("professor_id3")
-            priority4=request.form.get("professor_id4")
-            priority5=request.form.get("professor_id5")
-            flash(f'{name} + {email}')
-            if name and email:
-                new_professor = Professor(name=name, email=email,priority_classroom_1=priority1,priority_classroom_2=priority2,priority_classroom_3=priority3,priority_classroom_4=priority4,priority_classroom_5=priority5)
+            #flash(f'{name} + {email}')
+            if name:
+                new_professor = Professor(name=name,priority_classroom_1=priority1,priority_classroom_2=priority2,priority_classroom_3=priority3)
                 db.session.add(new_professor)
                 try:
                     db.session.commit()
@@ -406,8 +447,31 @@ def manage_professors():
         print(f"ID: {c.id}, Name: {c.name}, Capacity: {c.capacity}")"""
 
 
-@app.route('/classrooms', methods=['GET', 'POST'])
-def manage_classrooms():
+@app.route('/classroom_type',methods=['GET','POST'])
+def manage_classrooms_type():
+    if request.method=="POST":
+        name = request.form.get("name")
+        if name:
+            new_classroom_type = Building(name=name)
+            db.session.add(new_classroom_type)
+            try:
+                db.session.commit()
+                flash('Classroom Type added successfully', 'success')
+            except:
+                db.session.rollback()
+                flash('Error adding classroom', 'error')
+
+        return redirect(url_for("manage_classrooms_type"))
+
+    classrooms = Building.query.all()
+    """print("All classrooms in database:")
+    for c in classrooms:
+        print(f"ID: {c.id}, Name: {c.name}, Capacity: {c.capacity}")"""
+    return render_template('classrooms_type.html', classrooms=classrooms)
+
+@app.route('/classrooms/<int:idd>', methods=['GET', 'POST'])
+def manage_classrooms(idd):
+    # print(idd)
     if request.method == "POST":
         if 'file' in request.files:
             file = request.files["file"]
@@ -455,7 +519,7 @@ def manage_classrooms():
             name = request.form.get("name")
             capacity = request.form.get("capacity")
             if name and capacity:
-                new_classroom = Classroom(name=name, capacity=capacity)
+                new_classroom = Classroom(name=name, capacity=capacity,building_id=idd)
                 db.session.add(new_classroom)
                 try:
                     db.session.commit()
@@ -464,18 +528,20 @@ def manage_classrooms():
                     db.session.rollback()
                     flash('Error adding classroom', 'error')
 
-        return redirect(url_for("manage_classrooms"))
+        return redirect(url_for("manage_classrooms",idd=idd))
     
-    classrooms = Classroom.query.all()
+    classrooms = Classroom.query.filter_by(building_id=idd).all()
+
     """print("All classrooms in database:")
     for c in classrooms:
         print(f"ID: {c.id}, Name: {c.name}, Capacity: {c.capacity}")"""
-    return render_template('classrooms.html', classrooms=classrooms)
+    return render_template('classrooms.html', classrooms=classrooms, idd=idd)
 
 #added
 @app.route('/delete_classroom/<int:id>', methods=['POST', 'GET'])
 def delete_classroom(id):
     classroom = Classroom.query.get_or_404(id)  # find by ID or show 404
+    idd=classroom.building_id
     try:
         db.session.delete(classroom)   # delete it
         db.session.commit()            # save changes
@@ -484,9 +550,20 @@ def delete_classroom(id):
         db.session.rollback()
         flash(f'Error deleting classroom: {str(e)}', 'error')
     
-    return redirect(url_for('manage_classrooms'))
+    return redirect(url_for('manage_classrooms',idd=idd))
 
-
+@app.route('/delete_lab/<int:id>', methods=['POST', 'GET'])
+def delete_lab(id):
+    lab = Lab.query.get_or_404(id)  # find by ID or show 404
+    try:
+        db.session.delete(lab)   # delete it
+        db.session.commit()            # save changes
+        flash(f'Classroom "{lab.name}" deleted successfully.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting classroom: {str(e)}', 'error')
+    
+    return redirect(url_for('manage_labs'))
 
 @app.route('/delete_professor/<int:id>', methods=['POST', 'GET'])
 def delete_professor(id):
@@ -737,11 +814,7 @@ def lab_timetale():
 @app.route('/timetable',methods=['GET','POST'])
 def get_timetable():
     courses=Course.query.all()
-    # batches=Batch.query.all()
-    # classrooms=Classroom.query.all()
-    # labs=Lab.query.all()
-    # professors=Professor.query.all()
-
+    professors=Professor.query.all()
     courses_with_lab = Course.query.filter_by(is_lab=True).all()
     course_data = []
     for c in courses:
@@ -756,7 +829,10 @@ def get_timetable():
             "priority_evening":c.priority_evening,
             "avoid_day":c.avoid_day,
             "professor_id":c.professor_id,
-            "lab_id":c.lab_id,
+            "lab_professor_id":c.lab_professor_id,
+            "lab_id1":c.lab_id1,
+            "lab_id2":c.lab_id2,
+            "lab_id3":c.lab_id3,
             "batch_id":c.batch_id,
             "hours": hours
         })
@@ -767,6 +843,10 @@ def get_timetable():
 
     priority_evening_courses = [
         c for c in course_data if c["priority"] and c["priority_evening"]
+    ]
+
+    only_priority=[
+        c for c in course_data if c["priority"] and ((not c["priority_evening"] and not c["priority_morning"]) or (c["priority_evening"] and c["priority_morning"]))
     ]
 
     morning_only = [
@@ -781,28 +861,7 @@ def get_timetable():
         c for c in course_data if not c["priority"] and ((not c["priority_evening"] and not c["priority_morning"]) or (c["priority_evening"] and c["priority_morning"]))
     ]
 
-    only_priority=[
-        c for c in course_data if c["priority"] and ((not c["priority_evening"] and not c["priority_morning"]) or (c["priority_evening"] and c["priority_morning"]))
-    ]
-
-    print(len(priority_morning_courses))
-    print(len(priority_evening_courses))
-    print(len(morning_only))
-    print(len(evening_only))
-
-    for c in courses_with_lab:
-        print(f"Batch ID: {c.batch_id}")
-
     if request.method == 'POST':
-        # Schedule the course based on priority type
-        # day_map = {
-        #     "Monday": 0,
-        #     "Tuesday": 1,
-        #     "Wednesday": 2,
-        #     "Thursday": 3,
-        #     "Friday": 4
-        # }
-
         db.session.query(Schedule).delete()
         db.session.commit()
 
@@ -814,6 +873,7 @@ def get_timetable():
             morning_labp3 = []
             evening_labp3 = []
             other=[]
+            #for priority lab 1 morning
             for day in range(5):
                     if day == course.avoid_day:
                         continue 
@@ -822,6 +882,7 @@ def get_timetable():
                             if is_slot_available_lab_priority1(course, day, slot) and is_slot_available_lab_priority1(course, day, slot + 1):
                                 morning_labp1.append((day, slot))
                                 break
+            #for priority lab 1 evening
             for day in range(5):
                     if day == course.avoid_day:
                         continue 
@@ -829,7 +890,7 @@ def get_timetable():
                         if is_slot_available_lab_priority1(course, day, slot) and is_slot_available_lab_priority1(course, day, slot + 1):
                             evening_labp1.append((day, slot))
                             break
-            
+            #for priority 2 morning
             for day in range(5):
                     if day == course.avoid_day:
                         continue 
@@ -838,6 +899,7 @@ def get_timetable():
                             if is_slot_available_lab_priority2(course, day, slot) and is_slot_available_lab_priority2(course, day, slot + 1):
                                 morning_labp2.append((day, slot))
                                 break
+            #for priority 2 evening
             for day in range(5):
                     if day == course.avoid_day:
                         continue 
@@ -845,7 +907,7 @@ def get_timetable():
                         if is_slot_available_lab_priority2(course, day, slot) and is_slot_available_lab_priority2(course, day, slot + 1):
                             evening_labp2.append((day, slot))
                             break
-            
+            #for priority 3 morning
             for day in range(5):
                     if day == course.avoid_day:
                         continue 
@@ -854,6 +916,7 @@ def get_timetable():
                             if is_slot_available_lab_priority3(course, day, slot) and is_slot_available_lab_priority3(course, day, slot + 1):
                                 morning_labp3.append((day, slot))
                                 break
+            # for priority 3 evening
             for day in range(5):
                     if day == course.avoid_day:
                         continue 
@@ -861,7 +924,7 @@ def get_timetable():
                         if is_slot_available_lab_priority3(course, day, slot) and is_slot_available_lab_priority3(course, day, slot + 1):
                             evening_labp3.append((day, slot))
                             break
-
+            # for no condition
             for day in range(5): 
                     for slot in range(9):  # Check up to slot 7 for consecutive slots
                         if slot != 4 and slot!=5:
@@ -899,7 +962,7 @@ def get_timetable():
                 new_schedule = Schedule(
                     batch_id=course.batch_id,
                     course_id=course.id,
-                    professor_id=course.professor_id,
+                    professor_id=course.lab_professor_id,
                     lab_id=lab_assigned,
                     day=day,
                     slot=start_slot + offset,
@@ -913,46 +976,71 @@ def get_timetable():
                 db.session.rollback()
                 flash('Error scheduling priority course (2-hour consecutive)', 'error')
 
-
         for course in priority_morning_courses:
-            available_slots = []
-            hour=course["hours"]
-            print(hour)
-            if course["hours"]%2==1:
-                for day in range(5):
-                    if day == course["avoid_day"]:
-                        continue 
-                    for slot in range(5):  # Check up to slot 7 for consecutive slots
-                        if slot != 4 and slot !=5:
-                            if is_slot_available(course, day, slot) and is_slot_available(course, day, slot + 1):
-                                available_slots.append((day, slot))
-                                break
-                course["hours"]=1
-            else:
-                print("HELLO")
-                for day in range(5):
-                    if day == course["avoid_day"]:
-                        continue 
-                    for slot in range(5):  # Check up to slot 7 for consecutive slots
-                        if slot != 5 and slot !=4:
-                            if is_slot_available(course, day, slot) and is_slot_available(course, day, slot + 1):
-                                available_slots.append((day, slot))
-                                break
-                course["hours"]=0
-            need=max(0,((int(course["hours"]/2))*2)-2*len(available_slots))
-            # print(len(available_slots))  4
-            # print(int(course["hours"]/2)*2)  4
-            course["hours"]+=need
-            print(need)
-            print(course["hours"])
+
+            specific_professor = Professor.query.filter(Professor.id == course["professor_id"]).first()
+            priority_priority1_slots=[]
+            priority_priority2_slots=[]
+            priority_priority3_slots=[]
+            priority_other_slots=[]
+
+            for day in range(5):
+                if day == course["avoid_day"]:
+                    continue 
+                for slot in range(5):  # Check up to slot 7 for consecutive slots
+                    if slot != 4 and slot !=5:
+                        if is_slot_available(course, day, slot,specific_professor.priority_classroom_1) and is_slot_available(course, day, slot+1,specific_professor.priority_classroom_1):
+                            priority_priority1_slots.append((day, slot))
+                            break
+                        elif is_slot_available(course, day, slot,specific_professor.priority_classroom_2) and is_slot_available(course, day, slot+1,specific_professor.priority_classroom_2):
+                            priority_priority2_slots.append((day, slot))
+                            break
+                        elif is_slot_available(course, day, slot,specific_professor.priority_classroom_3) and is_slot_available(course, day, slot+1,specific_professor.priority_classroom_3):
+                            priority_priority3_slots.append((day, slot))
+                            break
+                        elif is_slot_available(course, day, slot,-1) and is_slot_available(course, day, slot+1,-1):
+                            priority_other_slots.append((day,slot))
+                            break
 
             days_done=[]
 
-            for _ in range(min(len(available_slots),int(hour/2))):
-                    day, start_slot = random.choice(available_slots)
+            while course["hours"]>1 and ( priority_priority1_slots or priority_priority2_slots or priority_priority3_slots or priority_other_slots):
+                    day = None
+                    start_slot = None
                     days_done.append(day)
-                    classroom = find_available_classroom(day, start_slot)
-                    available_slots.remove((day, start_slot))
+                    if priority_priority1_slots:
+                        day, start_slot = random.choice(priority_priority1_slots)
+                        priority_priority1_slots.remove((day, start_slot))
+                    elif priority_priority2_slots:
+                        day,start_slot = random.choice(priority_priority2_slots)
+                        priority_priority2_slots.remove((day, start_slot))
+                    elif priority_priority3_slots:
+                        day,start_slot = random.choice(priority_priority3_slots)
+                        priority_priority3_slots.remove((day, start_slot))
+                    elif priority_other_slots:
+                        day,start_slot = random.choice(priority_other_slots)
+                        priority_other_slots.remove((day, start_slot))
+                    else:
+                        print(f"No available slots for course {course['name']}")
+                        continue  # Skip this iteration if no slots available
+                    classroom1 = find_available_classroom_with_priorityroom(day, start_slot,specific_professor.priority_classroom_1)
+                    classroom2 = find_available_classroom_with_priorityroom(day, start_slot,specific_professor.priority_classroom_2)
+                    classroom3 = find_available_classroom_with_priorityroom(day, start_slot,specific_professor.priority_classroom_3)
+                    last=find_available_classroom(day,slot)
+
+                    decided_classroom=None
+                    if classroom1:
+                        decided_classroom=classroom1
+                    elif classroom2:
+                        decided_classroom=classroom2
+                    elif classroom3:
+                        decided_classroom=classroom3
+                    else:
+                        decided_classroom=last
+                    
+
+
+                    course["hours"]-=2
                     for offset in range(2):
                         new_schedule = Schedule(
                             batch_id=course["batch_id"],
@@ -960,7 +1048,7 @@ def get_timetable():
                             professor_id=course["professor_id"],
                             day=day,
                             slot=start_slot + offset,
-                            classroom_id= classroom.id
+                            classroom_id= decided_classroom.id
                         )
                         db.session.add(new_schedule)
                     try:
@@ -970,93 +1058,296 @@ def get_timetable():
                         db.session.rollback()
                         flash('Error scheduling priority course (2-hour consecutive)', 'error')
 
-            one_hour_slots=[]
-
-            for day in range(5):
-                    if day == course["avoid_day"] or day in days_done:
-                        continue 
-                    for slot in range(5):  # Check up to slot 7 for consecutive slots
-                        if slot !=5:
-                            if is_slot_available(course, day, slot):
-                                one_hour_slots.append((day, slot))
-                                break
-            
-            evening_hours=[]
+            morning_priority1_slots=[]
+            morning_priority2_slots=[]
+            morning_priority3_slots=[]
+            morning_other_slots=[]
 
             for day in range(5):
                     if day == course["avoid_day"] or day in days_done:
                         continue 
                     for slot in range(5,9):  # Check up to slot 7 for consecutive slots
                         if slot !=5:
-                            if is_slot_available(course, day, slot):
-                                evening_hours.append((day, slot))
-                                break
+                            if is_slot_available(course, day, slot,specific_professor.priority_classroom_1):
+                                morning_priority1_slots.append((day, slot))
+                            elif is_slot_available(course, day, slot,specific_professor.priority_classroom_2):
+                                morning_priority2_slots.append((day, slot))
+                            elif is_slot_available(course, day, slot,specific_professor.priority_classroom_3):
+                                morning_priority3_slots.append((day, slot))
+                            elif is_slot_available(course, day, slot,-1):
+                                morning_other_slots.append((day,slot))
+            
+            evening_priority1_slots=[]
+            evening_priority2_slots=[]
+            evening_priority3_slots=[]
+            evening_other_slots=[]
 
-            for _ in range(course["hours"]):
-                    day = None
-                    start_slot = None
-                    if one_hour_slots:
-                        day, start_slot = random.choice(one_hour_slots)
-                        one_hour_slots.remove((day, start_slot))
-                    elif evening_hours:
-                        day,start_slot = random.choice(evening_hours)
-                        evening_hours.remove((day, start_slot))
-                    else:
-                        # No available slot, handle gracefully
-                        print(f"No slots available for course {course['name']}")
-                        continue  # skip this iteration
-                        
-                    classroom = find_one_hour_classroom(day, start_slot)
-                    new_schedule = Schedule(
-                        batch_id=course["batch_id"],
-                        course_id=course["id"],
-                        professor_id=course["professor_id"],
-                        day=day,
-                        slot=start_slot,
-                        classroom_id= classroom.id
-                    )
-                    db.session.add(new_schedule)
-                    try:
-                        db.session.commit()
-                        flash('Priority course scheduled successfully (2-hour consecutive)', 'success')
-                    except:
-                        db.session.rollback()
-                        flash('Error scheduling priority course (2-hour consecutive)', 'error')
-        
+            for day in range(5):
+                    if day == course["avoid_day"] or day in days_done:
+                        continue 
+                    for slot in range(5):  # Check up to slot 7 for consecutive slots
+                        if slot !=5:
+                            if is_slot_available(course, day, slot,specific_professor.priority_classroom_1):
+                                evening_priority1_slots.append((day, slot))
+                            elif is_slot_available(course, day, slot,specific_professor.priority_classroom_2):
+                                evening_priority2_slots.append((day, slot))
+                            elif is_slot_available(course, day, slot,specific_professor.priority_classroom_3):
+                                evening_priority3_slots.append((day, slot))
+                            elif is_slot_available(course, day, slot,-1):
+                                evening_other_slots.append((day,slot))
+
+            last_priority1_slots=[]
+            last_priority2_slots=[]
+            last_priority3_slots=[]
+            last_other_slots=[]
+
+            for day in range(5):
+                for slot in range(9):  # Check up to slot 7 for consecutive slots
+                    if slot !=5:
+                        if is_slot_available(course, day, slot,specific_professor.priority_classroom_1):
+                            last_priority1_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,specific_professor.priority_classroom_2):
+                            last_priority2_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,specific_professor.priority_classroom_3):
+                            last_priority3_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,-1):
+                            last_other_slots.append((day,slot))
+
+            while course["hours"]>0 and (last_other_slots or last_priority1_slots or last_priority2_slots or last_priority3_slots or morning_priority1_slots or morning_priority2_slots or morning_priority3_slots or morning_other_slots or evening_other_slots or evening_priority1_slots or evening_priority2_slots or evening_priority3_slots):
+                day = None
+                start_slot = None
+                days_done.append(day)
+                if evening_priority1_slots:
+                    day, start_slot = random.choice(evening_priority1_slots)
+                    evening_priority1_slots.remove((day, start_slot))
+                elif evening_priority2_slots:
+                    day,start_slot = random.choice(evening_priority2_slots)
+                    evening_priority2_slots.remove((day, start_slot))
+                elif evening_priority3_slots:
+                    day,start_slot = random.choice(evening_priority3_slots)
+                    evening_priority3_slots.remove((day, start_slot))
+                elif evening_other_slots:
+                    day,start_slot = random.choice(evening_other_slots)
+                    evening_other_slots.remove((day, start_slot))
+                elif morning_priority1_slots:
+                    day,start_slot=random.choice(morning_priority1_slots)
+                    morning_priority1_slots.remove((day,start_slot))
+                elif morning_priority2_slots:
+                    day,start_slot = random.choice(morning_priority2_slots)
+                    morning_priority2_slots.remove((day, start_slot))
+                elif morning_priority3_slots:
+                    day,start_slot = random.choice(morning_priority3_slots)
+                    morning_priority3_slots.remove((day, start_slot))
+                elif morning_other_slots:
+                    day,start_slot = random.choice(morning_other_slots)
+                    morning_other_slots.remove((day, start_slot))
+                elif last_priority1_slots:
+                    day,start_slot=random.choice(last_priority1_slots)
+                    last_priority1_slots.remove((day,start_slot))
+                elif last_priority2_slots:
+                    day,start_slot = random.choice(last_priority2_slots)
+                    last_priority2_slots.remove((day, start_slot))
+                elif last_priority3_slots:
+                    day,start_slot = random.choice(last_priority3_slots)
+                    last_priority3_slots.remove((day, start_slot))
+                elif last_other_slots:
+                    day,start_slot = random.choice(last_other_slots)
+                    last_other_slots.remove((day, start_slot))
+                else:
+                    print(f"No available slots for course {course['name']}")
+                    continue  # Skip this iteration if no slots available
+                decided_classroom=None
+                classroom1 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_1)
+                classroom2 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_2)
+                classroom3 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_3)
+                last=find_available_classroom_onehour(day,slot)
+                if classroom1:
+                    decided_classroom=classroom1
+                elif classroom2:
+                    decided_classroom=classroom2
+                elif classroom3:
+                    decided_classroom=classroom3
+                elif last:
+                    decided_classroom=last
+                else:
+                    continue
+                
+                course["hours"]-=1
+                new_schedule = Schedule(
+                    batch_id=course["batch_id"],
+                    course_id=course["id"],
+                    professor_id=course["professor_id"],
+                    day=day,
+                    slot=start_slot + offset,
+                    classroom_id= decided_classroom.id
+                )
+                db.session.add(new_schedule)
+                try:
+                    db.session.commit()
+                    flash('Priority course scheduled successfully (2-hour consecutive)', 'success')
+                except:
+                    db.session.rollback()
+                    flash('Error scheduling priority course (2-hour consecutive)', 'error')
+
+            # while course["hours"]>0 and one_hour_slots:
+            #     day, start_slot = random.choice(evening_hours)
+            #     classroom1 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_1)
+            #     classroom2 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_2)
+            #     classroom3 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_3)
+            #     classroom4 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_4)
+            #     classroom5 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_5)
+            #     last=find_available_classroom_onehour(day,slot)
+                
+            #     one_hour_slots.remove((day, start_slot))
+            #     decided_classroom=None
+            #     if classroom1:
+            #         decided_classroom=classroom1
+            #     elif classroom2:
+            #         decided_classroom=classroom2
+            #     elif classroom3:
+            #         decided_classroom=classroom3
+            #     elif classroom4:
+            #         decided_classroom=classroom4
+            #     elif classroom5:
+            #         decided_classroom=classroom5
+            #     elif last:
+            #         decided_classroom=last
+            #     else:
+            #         continue
+                
+            #     course["hours"]-=1
+            #     for offset in range(2):
+            #         new_schedule = Schedule(
+            #             batch_id=course["batch_id"],
+            #             course_id=course["id"],
+            #             professor_id=course["professor_id"],
+            #             day=day,
+            #             slot=start_slot + offset,
+            #             classroom_id= decided_classroom.id
+            #         )
+            #         db.session.add(new_schedule)
+            #     try:
+            #         db.session.commit()
+            #         flash('Priority course scheduled successfully (2-hour consecutive)', 'success')
+            #     except:
+            #         db.session.rollback()
+            #         flash('Error scheduling priority course (2-hour consecutive)', 'error')
+
+
+            # remaining=[]
+            # for day in range(5):
+            #     for slot in range(9):  # Check up to slot 7 for consecutive slots
+            #         if slot != 4 and slot !=5:
+            #             if is_slot_available(course, day, slot) :
+            #                 remaining.append((day, slot))
+
+            # while course["hours"]>0 and remaining:
+            #     day, start_slot = random.choice(remaining)
+            #     classroom1 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_1)
+            #     classroom2 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_2)
+            #     classroom3 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_3)
+            #     classroom4 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_4)
+            #     classroom5 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_5)
+            #     last=find_available_classroom_onehour(day,slot)
+                
+            #     remaining.remove((day, start_slot))
+            #     decided_classroom=None
+            #     if classroom1:
+            #         decided_classroom=classroom1
+            #     elif classroom2:
+            #         decided_classroom=classroom2
+            #     elif classroom3:
+            #         decided_classroom=classroom3
+            #     elif classroom4:
+            #         decided_classroom=classroom4
+            #     elif classroom5:
+            #         decided_classroom=classroom5
+            #     elif last:
+            #         decided_classroom=last
+            #     else:
+            #         continue
+                
+            #     course["hours"]-=1
+            #     for offset in range(2):
+            #         new_schedule = Schedule(
+            #             batch_id=course["batch_id"],
+            #             course_id=course["id"],
+            #             professor_id=course["professor_id"],
+            #             day=day,
+            #             slot=start_slot + offset,
+            #             classroom_id= decided_classroom.id
+            #         )
+            #         db.session.add(new_schedule)
+            #     try:
+            #         db.session.commit()
+            #         flash('Priority course scheduled successfully (2-hour consecutive)', 'success')
+            #     except:
+            #         db.session.rollback()
+            #         flash('Error scheduling priority course (2-hour consecutive)', 'error')
+            
 
         for course in priority_evening_courses:
-            available_slots = []
-            hour=course["hours"]
-            if course["hours"]%2==1:
-                for day in range(5):
-                    if day == course["avoid_day"]:
-                        continue 
-                    for slot in range(5,9):  # Check up to slot 7 for consecutive slots
-                        if slot != 4 and slot !=5:
-                            if is_slot_available(course, day, slot) and is_slot_available(course, day, slot + 1):
-                                available_slots.append((day, slot))
-                                break
-                course["hours"]=1
-            else:
-                for day in range(5):
-                    if day == course["avoid_day"]:
-                        continue 
-                    for slot in range(5,9):  # Check up to slot 7 for consecutive slots
-                        if slot != 5 and slot !=4:
-                            if is_slot_available(course, day, slot) and is_slot_available(course, day, slot + 1):
-                                available_slots.append((day, slot))
-                                break
-                course["hours"]=0
-            need=max(0,((int(course["hours"]/2))*2)-2*len(available_slots))
-            course["hours"]+=need
+            specific_professor = Professor.query.filter(Professor.id == course["professor_id"]).first()
+            priority_priority1_slots=[]
+            priority_priority2_slots=[]
+            priority_priority3_slots=[]
+            priority_other_slots=[]
+
+            for day in range(5):
+                if day == course["avoid_day"]:
+                    continue 
+                for slot in range(5,8):  # Check up to slot 7 for consecutive slots
+                    if slot != 4 and slot !=5:
+                        if is_slot_available(course, day, slot,specific_professor.priority_classroom_1) and is_slot_available(course, day, slot+1,specific_professor.priority_classroom_1):
+                            priority_priority1_slots.append((day, slot))
+                            break
+                        elif is_slot_available(course, day, slot,specific_professor.priority_classroom_2) and is_slot_available(course, day, slot+1,specific_professor.priority_classroom_2):
+                            priority_priority2_slots.append((day, slot))
+                            break
+                        elif is_slot_available(course, day, slot,specific_professor.priority_classroom_3) and is_slot_available(course, day, slot+1,specific_professor.priority_classroom_3):
+                            priority_priority3_slots.append((day, slot))
+                            break
+                        elif is_slot_available(course, day, slot,-1) and is_slot_available(course, day, slot+1,-1):
+                            priority_other_slots.append((day,slot))
+                            break
 
             days_done=[]
 
-            for _ in range(min(len(available_slots),int(hour/2))):
-                    day, start_slot = random.choice(available_slots)
+            while course["hours"]>1 and ( priority_priority1_slots or priority_priority2_slots or priority_priority3_slots or priority_other_slots):
+                    day = None
+                    start_slot = None
                     days_done.append(day)
-                    classroom = find_available_classroom(day, start_slot)
-                    available_slots.remove((day, start_slot))
+                    if priority_priority1_slots:
+                        day, start_slot = random.choice(priority_priority1_slots)
+                        priority_priority1_slots.remove((day, start_slot))
+                    elif priority_priority2_slots:
+                        day,start_slot = random.choice(priority_priority2_slots)
+                        priority_priority2_slots.remove((day, start_slot))
+                    elif priority_priority3_slots:
+                        day,start_slot = random.choice(priority_priority3_slots)
+                        priority_priority3_slots.remove((day, start_slot))
+                    elif priority_other_slots:
+                        day,start_slot = random.choice(priority_other_slots)
+                        priority_other_slots.remove((day, start_slot))
+                    else:
+                        print(f"No available slots for course {course['name']}")
+                        continue  # Skip this iteration if no slots available
+                    classroom1 = find_available_classroom_with_priorityroom(day, start_slot,specific_professor.priority_classroom_1)
+                    classroom2 = find_available_classroom_with_priorityroom(day, start_slot,specific_professor.priority_classroom_2)
+                    classroom3 = find_available_classroom_with_priorityroom(day, start_slot,specific_professor.priority_classroom_3)
+                    last=find_available_classroom(day,slot)
+
+                    decided_classroom=None
+                    if classroom1:
+                        decided_classroom=classroom1
+                    elif classroom2:
+                        decided_classroom=classroom2
+                    elif classroom3:
+                        decided_classroom=classroom3
+                    else:
+                        decided_classroom=last
+                    
+                    course["hours"]-=2
                     for offset in range(2):
                         new_schedule = Schedule(
                             batch_id=course["batch_id"],
@@ -1064,7 +1355,7 @@ def get_timetable():
                             professor_id=course["professor_id"],
                             day=day,
                             slot=start_slot + offset,
-                            classroom_id= classroom.id
+                            classroom_id= decided_classroom.id
                         )
                         db.session.add(new_schedule)
                     try:
@@ -1074,291 +1365,658 @@ def get_timetable():
                         db.session.rollback()
                         flash('Error scheduling priority course (2-hour consecutive)', 'error')
 
-            one_hour_slots=[]
-
-            for day in range(5):
-                    if day == course["avoid_day"] or day in days_done:
-                        continue 
-                    for slot in range(5,9):  # Check up to slot 7 for consecutive slots
-                        if slot !=5:
-                            if is_slot_available(course, day, slot):
-                                one_hour_slots.append((day, slot))
-                                break
-            
-            morning_hours=[]
+            morning_priority1_slots=[]
+            morning_priority2_slots=[]
+            morning_priority3_slots=[]
+            morning_other_slots=[]
 
             for day in range(5):
                     if day == course["avoid_day"] or day in days_done:
                         continue 
                     for slot in range(5):  # Check up to slot 7 for consecutive slots
                         if slot !=5:
-                            if is_slot_available(course, day, slot):
-                                morning_hours.append((day, slot))
-                                break
+                            if is_slot_available(course, day, slot,specific_professor.priority_classroom_1):
+                                morning_priority1_slots.append((day, slot))
+                            elif is_slot_available(course, day, slot,specific_professor.priority_classroom_2):
+                                morning_priority2_slots.append((day, slot))
+                            elif is_slot_available(course, day, slot,specific_professor.priority_classroom_3):
+                                morning_priority3_slots.append((day, slot))
+                            elif is_slot_available(course, day, slot,-1):
+                                morning_other_slots.append((day,slot))
+            
+            evening_priority1_slots=[]
+            evening_priority2_slots=[]
+            evening_priority3_slots=[]
+            evening_other_slots=[]
 
-            for _ in range(course["hours"]):
-                    day = None
-                    start_slot = None
-                    if one_hour_slots:
-                        day, start_slot = random.choice(one_hour_slots)
-                        one_hour_slots.remove((day, start_slot))
-                    elif morning_hours:
-                        day,start_slot = random.choice(morning_hours)
-                        morning_hours.remove((day, start_slot))
-                    else:
-                        # No available slot, handle gracefully
-                        print(f"No slots available for course {course['name']}")
-                        continue  # skip this iteration
-                        
-                    classroom = find_one_hour_classroom(day, start_slot)
+            for day in range(5):
+                    if day == course["avoid_day"] or day in days_done:
+                        continue 
+                    for slot in range(5,9):  # Check up to slot 7 for consecutive slots
+                        if slot !=5:
+                            if is_slot_available(course, day, slot,specific_professor.priority_classroom_1):
+                                evening_priority1_slots.append((day, slot))
+                            elif is_slot_available(course, day, slot,specific_professor.priority_classroom_2):
+                                evening_priority2_slots.append((day, slot))
+                            elif is_slot_available(course, day, slot,specific_professor.priority_classroom_3):
+                                evening_priority3_slots.append((day, slot))
+                            elif is_slot_available(course, day, slot,-1):
+                                evening_other_slots.append((day,slot))
+
+            last_priority1_slots=[]
+            last_priority2_slots=[]
+            last_priority3_slots=[]
+            last_other_slots=[]
+
+            for day in range(5):
+                for slot in range(9):  # Check up to slot 7 for consecutive slots
+                    if slot !=5:
+                        if is_slot_available(course, day, slot,specific_professor.priority_classroom_1):
+                            last_priority1_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,specific_professor.priority_classroom_2):
+                            last_priority2_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,specific_professor.priority_classroom_3):
+                            last_priority3_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,-1):
+                            last_other_slots.append((day,slot))
+
+            while course["hours"]>0 and (last_other_slots or last_priority1_slots or last_priority2_slots or last_priority3_slots or morning_priority1_slots or morning_priority2_slots or morning_priority3_slots or morning_other_slots or evening_other_slots or evening_priority1_slots or evening_priority2_slots or evening_priority3_slots):
+                day = None
+                start_slot = None
+                days_done.append(day)
+                if evening_priority1_slots:
+                    day, start_slot = random.choice(evening_priority1_slots)
+                    evening_priority1_slots.remove((day, start_slot))
+                elif evening_priority2_slots:
+                    day,start_slot = random.choice(evening_priority2_slots)
+                    evening_priority2_slots.remove((day, start_slot))
+                elif evening_priority3_slots:
+                    day,start_slot = random.choice(evening_priority3_slots)
+                    evening_priority3_slots.remove((day, start_slot))
+                elif evening_other_slots:
+                    day,start_slot = random.choice(evening_other_slots)
+                    evening_other_slots.remove((day, start_slot))
+                elif morning_priority1_slots:
+                    day,start_slot=random.choice(morning_priority1_slots)
+                    morning_priority1_slots.remove((day,start_slot))
+                elif morning_priority2_slots:
+                    day,start_slot = random.choice(morning_priority2_slots)
+                    morning_priority2_slots.remove((day, start_slot))
+                elif morning_priority3_slots:
+                    day,start_slot = random.choice(morning_priority3_slots)
+                    morning_priority3_slots.remove((day, start_slot))
+                elif morning_other_slots:
+                    day,start_slot = random.choice(morning_other_slots)
+                    morning_other_slots.remove((day, start_slot))
+                elif last_priority1_slots:
+                    day,start_slot=random.choice(last_priority1_slots)
+                    last_priority1_slots.remove((day,start_slot))
+                elif last_priority2_slots:
+                    day,start_slot = random.choice(last_priority2_slots)
+                    last_priority2_slots.remove((day, start_slot))
+                elif last_priority3_slots:
+                    day,start_slot = random.choice(last_priority3_slots)
+                    last_priority3_slots.remove((day, start_slot))
+                elif last_other_slots:
+                    day,start_slot = random.choice(last_other_slots)
+                    last_other_slots.remove((day, start_slot))
+                else:
+                    print(f"No available slots for course {course['name']}")
+                    continue  # Skip this iteration if no slots available
+                decided_classroom=None
+                classroom1 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_1)
+                classroom2 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_2)
+                classroom3 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_3)
+                last=find_available_classroom_onehour(day,slot)
+                if classroom1:
+                    decided_classroom=classroom1
+                elif classroom2:
+                    decided_classroom=classroom2
+                elif classroom3:
+                    decided_classroom=classroom3
+                elif last:
+                    decided_classroom=last
+                else:
+                    continue
+                
+                course["hours"]-=1
+                new_schedule = Schedule(
+                    batch_id=course["batch_id"],
+                    course_id=course["id"],
+                    professor_id=course["professor_id"],
+                    day=day,
+                    slot=start_slot + offset,
+                    classroom_id= decided_classroom.id
+                )
+                db.session.add(new_schedule)
+                try:
+                    db.session.commit()
+                    flash('Priority course scheduled successfully (2-hour consecutive)', 'success')
+                except:
+                    db.session.rollback()
+                    flash('Error scheduling priority course (2-hour consecutive)', 'error')
+
+            # while course["hours"]>0 and one_hour_slots:
+            #     day, start_slot = random.choice(evening_hours)
+            #     classroom1 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_1)
+            #     classroom2 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_2)
+            #     classroom3 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_3)
+            #     classroom4 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_4)
+            #     classroom5 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_5)
+            #     last=find_available_classroom_onehour(day,slot)
+                
+            #     one_hour_slots.remove((day, start_slot))
+            #     decided_classroom=None
+            #     if classroom1:
+            #         decided_classroom=classroom1
+            #     elif classroom2:
+            #         decided_classroom=classroom2
+            #     elif classroom3:
+            #         decided_classroom=classroom3
+            #     elif classroom4:
+            #         decided_classroom=classroom4
+            #     elif classroom5:
+            #         decided_classroom=classroom5
+            #     elif last:
+            #         decided_classroom=last
+            #     else:
+            #         continue
+                
+            #     course["hours"]-=1
+            #     for offset in range(2):
+            #         new_schedule = Schedule(
+            #             batch_id=course["batch_id"],
+            #             course_id=course["id"],
+            #             professor_id=course["professor_id"],
+            #             day=day,
+            #             slot=start_slot + offset,
+            #             classroom_id= decided_classroom.id
+            #         )
+            #         db.session.add(new_schedule)
+            #     try:
+            #         db.session.commit()
+            #         flash('Priority course scheduled successfully (2-hour consecutive)', 'success')
+            #     except:
+            #         db.session.rollback()
+            #         flash('Error scheduling priority course (2-hour consecutive)', 'error')
+
+
+            # remaining=[]
+            # for day in range(5):
+            #     for slot in range(9):  # Check up to slot 7 for consecutive slots
+            #         if slot != 4 and slot !=5:
+            #             if is_slot_available(course, day, slot) :
+            #                 remaining.append((day, slot))
+
+            # while course["hours"]>0 and remaining:
+            #     day, start_slot = random.choice(remaining)
+            #     classroom1 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_1)
+            #     classroom2 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_2)
+            #     classroom3 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_3)
+            #     classroom4 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_4)
+            #     classroom5 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_5)
+            #     last=find_available_classroom_onehour(day,slot)
+                
+            #     remaining.remove((day, start_slot))
+            #     decided_classroom=None
+            #     if classroom1:
+            #         decided_classroom=classroom1
+            #     elif classroom2:
+            #         decided_classroom=classroom2
+            #     elif classroom3:
+            #         decided_classroom=classroom3
+            #     elif classroom4:
+            #         decided_classroom=classroom4
+            #     elif classroom5:
+            #         decided_classroom=classroom5
+            #     elif last:
+            #         decided_classroom=last
+            #     else:
+            #         continue
+                
+            #     course["hours"]-=1
+            #     for offset in range(2):
+            #         new_schedule = Schedule(
+            #             batch_id=course["batch_id"],
+            #             course_id=course["id"],
+            #             professor_id=course["professor_id"],
+            #             day=day,
+            #             slot=start_slot + offset,
+            #             classroom_id= decided_classroom.id
+            #         )
+            #         db.session.add(new_schedule)
+            #     try:
+            #         db.session.commit()
+            #         flash('Priority course scheduled successfully (2-hour consecutive)', 'success')
+            #     except:
+            #         db.session.rollback()
+            #         flash('Error scheduling priority course (2-hour consecutive)', 'error')
+            
+
+        for course in only_priority:
+            specific_professor = Professor.query.filter(Professor.id == course["professor_id"]).first()
+
+            priority_priority1_slots=[]
+            priority_priority2_slots=[]
+            priority_priority3_slots=[]
+            priority_other_slots=[]
+            for day in range(5):
+                if day == course["avoid_day"]:
+                    continue 
+                for slot in range(8):  # Check up to slot 7 for consecutive slots
+                    if slot != 5 and slot !=4:
+                        if is_slot_available(course, day, slot,specific_professor.priority_classroom_1) and is_slot_available(course, day, slot+1,specific_professor.priority_classroom_1):
+                            priority_priority1_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,specific_professor.priority_classroom_2) and is_slot_available(course, day, slot+1,specific_professor.priority_classroom_2):
+                            priority_priority2_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,specific_professor.priority_classroom_3) and is_slot_available(course, day, slot+1,specific_professor.priority_classroom_3):
+                            priority_priority3_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,-1) and is_slot_available(course, day, slot+1,-1):
+                            priority_other_slots.append((day,slot))
+
+            days_done=[]
+
+            while course["hours"]>1 and (priority_priority1_slots or priority_priority2_slots or priority_priority3_slots or priority_other_slots):
+                day = None
+                start_slot = None
+                days_done.append(day)
+                if priority_priority1_slots:
+                    day, start_slot = random.choice(priority_priority1_slots)
+                    priority_priority1_slots.remove((day, start_slot))
+                elif priority_priority2_slots:
+                    day,start_slot = random.choice(priority_priority2_slots)
+                    priority_priority2_slots.remove((day, start_slot))
+                elif priority_priority3_slots:
+                    day,start_slot = random.choice(priority_priority3_slots)
+                    priority_priority3_slots.remove((day, start_slot))
+                elif priority_other_slots:
+                    day,start_slot = random.choice(priority_other_slots)
+                    priority_other_slots.remove((day, start_slot))
+                else:
+                    print(f"No available slots for course {course['name']}")
+                    continue  # Skip this iteration if no slots available
+
+                decided_classroom=None
+                classroom1 = find_available_classroom_with_priorityroom(day, start_slot,specific_professor.priority_classroom_1)
+                classroom2 = find_available_classroom_with_priorityroom(day, start_slot,specific_professor.priority_classroom_2)
+                classroom3 = find_available_classroom_with_priorityroom(day, start_slot,specific_professor.priority_classroom_3)
+                last=find_available_classroom(day,slot)
+                if classroom1:
+                    decided_classroom=classroom1
+                elif classroom2:
+                    decided_classroom=classroom2
+                elif classroom3:
+                    decided_classroom=classroom3
+                else:
+                    decided_classroom=last
+                
+                course["hours"]-=2
+                for offset in range(2):
                     new_schedule = Schedule(
                         batch_id=course["batch_id"],
                         course_id=course["id"],
                         professor_id=course["professor_id"],
                         day=day,
-                        slot=start_slot,
-                        classroom_id= classroom.id
+                        slot=start_slot + offset,
+                        classroom_id= decided_classroom.id
                     )
                     db.session.add(new_schedule)
-                    try:
-                        db.session.commit()
-                        flash('Priority course scheduled successfully (2-hour consecutive)', 'success')
-                    except:
-                        db.session.rollback()
-                        flash('Error scheduling priority course (2-hour consecutive)', 'error')
-        
+                try:
+                    db.session.commit()
+                    flash('Priority course scheduled successfully (2-hour consecutive)', 'success')
+                except:
+                    db.session.rollback()
+                    flash('Error scheduling priority course (2-hour consecutive)', 'error')
 
-        for course in only_priority:
-            print(f"{course['name']}")
-            available_slots = []
-            hour=course["hours"]
-            print(hour)
-            if course["hours"]%2==1:
-                for day in range(5):
-                    if day == course["avoid_day"]:
-                        continue 
-                    for slot in range(9):  # Check up to slot 7 for consecutive slots
-                        if slot != 4 and slot !=5:
-                            if is_slot_available(course, day, slot) and is_slot_available(course, day, slot + 1):
-                                available_slots.append((day, slot))
-                                break
-                course["hours"]=1
-            else:
-                print("HELLO")
-                for day in range(5):
-                    if day == course["avoid_day"]:
-                        continue 
-                    for slot in range(9):  # Check up to slot 7 for consecutive slots
-                        if slot != 5 and slot !=4:
-                            if is_slot_available(course, day, slot) and is_slot_available(course, day, slot + 1):
-                                available_slots.append((day, slot))
-                                break
-                course["hours"]=0
-            need=max(0,((int(hour/2))*2)-2*len(available_slots))
-            # print(len(available_slots))  4
-            # print(int(course["hours"]/2)*2)  4
-            course["hours"]+=need
-            print(need)
-            print(course["hours"])
-
-            days_done=[]
-
-            for _ in range(min(len(available_slots),int(hour/2))):
-                    day, start_slot = random.choice(available_slots)
-                    days_done.append(day)
-                    classroom = find_available_classroom(day, start_slot)
-                    available_slots.remove((day, start_slot))
-                    for offset in range(2):
-                        new_schedule = Schedule(
-                            batch_id=course["batch_id"],
-                            course_id=course["id"],
-                            professor_id=course["professor_id"],
-                            day=day,
-                            slot=start_slot + offset,
-                            classroom_id= classroom.id
-                        )
-                        db.session.add(new_schedule)
-                    try:
-                        db.session.commit()
-                        flash('Priority course scheduled successfully (2-hour consecutive)', 'success')
-                    except:
-                        db.session.rollback()
-                        flash('Error scheduling priority course (2-hour consecutive)', 'error')
-
-            one_hour_slots=[]
+            priority1_slots=[]
+            priority2_slots=[]
+            priority3_slots=[]
+            other_slots=[]
 
             for day in range(5):
                     if day == course["avoid_day"] or day in days_done:
                         continue 
                     for slot in range(9):  # Check up to slot 7 for consecutive slots
                         if slot !=5:
-                            if is_slot_available(course, day, slot):
-                                one_hour_slots.append((day, slot))
-                                break
-            
+                            if is_slot_available(course, day, slot,specific_professor.priority_classroom_1):
+                                priority1_slots.append((day, slot))
+                            elif is_slot_available(course, day, slot,specific_professor.priority_classroom_2):
+                                priority2_slots.append((day, slot))
+                            elif is_slot_available(course, day, slot,specific_professor.priority_classroom_3):
+                                priority3_slots.append((day, slot))
+                            elif is_slot_available(course, day, slot,-1):
+                                other_slots.append((day,slot))
+                
 
-            for _ in range(course["hours"]):
-                    day, start_slot = random.choice(one_hour_slots)
-                    one_hour_slots.remove((day, start_slot))
-                        
-                    classroom = find_one_hour_classroom(day, start_slot)
-                    new_schedule = Schedule(
-                        batch_id=course["batch_id"],
-                        course_id=course["id"],
-                        professor_id=course["professor_id"],
-                        day=day,
-                        slot=start_slot,
-                        classroom_id= classroom.id
-                    )
-                    db.session.add(new_schedule)
-                    try:
-                        db.session.commit()
-                        flash('Priority course scheduled successfully (2-hour consecutive)', 'success')
-                    except:
-                        db.session.rollback()
-                        flash('Error scheduling priority course (2-hour consecutive)', 'error')
+            while course["hours"]>0 and (priority1_slots or priority2_slots or priority3_slots or other_slots):
+                day = None
+                start_slot = None
+                if priority1_slots:
+                    day, start_slot = random.choice(priority1_slots)
+                    priority1_slots.remove((day, start_slot))
+                elif priority2_slots:
+                    day,start_slot = random.choice(priority2_slots)
+                    priority2_slots.remove((day, start_slot))
+                elif priority3_slots:
+                    day,start_slot = random.choice(priority3_slots)
+                    priority3_slots.remove((day, start_slot))
+                elif other_slots:
+                    day,start_slot = random.choice(other_slots)
+                    other_slots.remove((day, start_slot))
+                else:
+                    print(f"No available slots for course {course['name']}")
+                    continue  # Skip this iteration if no slots available
+                classroom1 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_1)
+                classroom2 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_2)
+                classroom3 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_3)
+                last=find_available_classroom_onehour(day,slot)
+
+                decided_classroom=None
+                if classroom1:
+                    decided_classroom=classroom1
+                elif classroom2:
+                    decided_classroom=classroom2
+                elif classroom3:
+                    decided_classroom=classroom3
+                else:
+                    decided_classroom=last
+                
+                course["hours"]-=1
+
+                new_schedule = Schedule(
+                    batch_id=course["batch_id"],
+                    course_id=course["id"],
+                    professor_id=course["professor_id"],
+                    day=day,
+                    slot=start_slot,
+                    classroom_id= decided_classroom.id
+                )
+                db.session.add(new_schedule)
+                try:
+                    db.session.commit()
+                    flash('Priority course scheduled successfully (2-hour consecutive)', 'success')
+                except:
+                    db.session.rollback()
+                    flash('Error scheduling priority course (2-hour consecutive)', 'error')
+    
         
-
         for course in morning_only:
-            available_slots = []
-            hour=course["hours"]
+            priority1_slots=[]
+            priority2_slots=[]
+            priority3_slots=[]
+            other_slots=[]
+            specific_professor = Professor.query.filter(Professor.id == course["professor_id"]).first()
+
 
             for day in range(5):
                 if day == course["avoid_day"]:
                     continue 
                 for slot in range(5):  # Check up to slot 7 for consecutive slots
                     if slot != 5:
-                        if is_slot_available(course, day, slot):
-                            available_slots.append((day, slot))
+                        if is_slot_available(course, day, slot,specific_professor.priority_classroom_1):
+                            priority1_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,specific_professor.priority_classroom_2):
+                            priority2_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,specific_professor.priority_classroom_3):
+                            priority3_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,-1):
+                            other_slots.append((day,slot))
 
-            evening_slots=[]
+            morning_priority1_slots=[]
+            morning_priority2_slots=[]
+            morning_priority3_slots=[]
+            morning_other_slots=[]
 
             for day in range(5):
                 if day == course["avoid_day"]:
                     continue 
                 for slot in range(5,9):  # Check up to slot 7 for consecutive slots
                     if slot != 5:
-                        if is_slot_available(course, day, slot):
-                            evening_slots.append((day, slot))
+                        if is_slot_available(course, day, slot,specific_professor.priority_classroom_1):
+                            morning_priority1_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,specific_professor.priority_classroom_2):
+                            morning_priority2_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,specific_professor.priority_classroom_3):
+                            morning_priority3_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,-1):
+                            morning_other_slots.append((day,slot))
 
-            for _ in range(course["hours"]):
-                    day = None
-                    start_slot = None
-                    if available_slots:
-                        day, start_slot = random.choice(available_slots)
-                        available_slots.remove((day, start_slot))
-                    elif evening_slots:
-                        day,start_slot = random.choice(evening_slots)
-                        evening_slots.remove((day, start_slot))
-                    else:
-                        print(f"No available slots for course {course['name']}")
-                        continue  # Skip this iteration if no slots available
+            while course["hours"]>0 and (priority1_slots or priority2_slots or priority3_slots or morning_priority1_slots or morning_priority2_slots or morning_priority3_slots or other_slots or morning_other_slots):
+                day = None
+                start_slot = None
+                if priority1_slots:
+                    day, start_slot = random.choice(priority1_slots)
+                    priority1_slots.remove((day, start_slot))
+                elif priority2_slots:
+                    day,start_slot = random.choice(priority2_slots)
+                    priority2_slots.remove((day, start_slot))
+                elif priority3_slots:
+                    day,start_slot = random.choice(priority3_slots)
+                    priority3_slots.remove((day, start_slot))
+                elif other_slots:
+                    day,start_slot = random.choice(other_slots)
+                    other_slots.remove((day, start_slot))
+                elif morning_priority1_slots:
+                    day,start_slot = random.choice(morning_priority1_slots)
+                    morning_priority1_slots.remove((day, start_slot))
+                elif morning_priority2_slots:
+                    day,start_slot = random.choice(morning_priority2_slots)
+                    morning_priority2_slots.remove((day, start_slot))
+                elif morning_priority3_slots:
+                    day,start_slot = random.choice(morning_priority3_slots)
+                    morning_priority3_slots.remove((day, start_slot))
+                elif morning_other_slots:
+                    day,start_slot = random.choice(morning_other_slots)
+                    morning_other_slots.remove((day, start_slot))
+                else:
+                    print(f"No available slots for course {course['name']}")
+                    continue  # Skip this iteration if no slots available
                         
-                    classroom = find_one_hour_classroom(day, start_slot)
-                    new_schedule = Schedule(
-                        batch_id=course["batch_id"],
-                        course_id=course["id"],
-                        professor_id=course["professor_id"],
-                        day=day,
-                        slot=start_slot,
-                        classroom_id= classroom.id
-                    )
-                    db.session.add(new_schedule)
-                    try:
-                        db.session.commit()
-                        flash('Priority course scheduled successfully (2-hour consecutive)', 'success')
-                    except:
-                        db.session.rollback()
-                        flash('Error scheduling priority course (2-hour consecutive)', 'error')
+                classroom1 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_1)
+                classroom2 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_2)
+                classroom3 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_3)
+                last=find_available_classroom_onehour(day,slot)
+                        
+
+                decided_classroom=None
+                if classroom1:
+                    decided_classroom=classroom1
+                elif classroom2:
+                    decided_classroom=classroom2
+                elif classroom3:
+                    decided_classroom=classroom3
+                else:
+                    decided_classroom=last
+                course["hours"]-=1
+
+                new_schedule = Schedule(
+                    batch_id=course["batch_id"],
+                    course_id=course["id"],
+                    professor_id=course["professor_id"],
+                    day=day,
+                    slot=start_slot,
+                    classroom_id= decided_classroom.id
+                )
+                db.session.add(new_schedule)
+                try:
+                    db.session.commit()
+                    flash('Priority course scheduled successfully (2-hour consecutive)', 'success')
+                except:
+                    db.session.rollback()
+                    flash('Error scheduling priority course (2-hour consecutive)', 'error')
 
         for course in evening_only:
-            available_slots = []
-            hour=course["hours"]
+            priority1_slots=[]
+            priority2_slots=[]
+            priority3_slots=[]
+            other_slots=[]
+            specific_professor = Professor.query.filter(Professor.id == course["professor_id"]).first()
 
             for day in range(5):
                 if day == course["avoid_day"]:
                     continue 
                 for slot in range(5,9):  # Check up to slot 7 for consecutive slots
                     if slot != 5:
-                        if is_slot_available(course, day, slot):
-                            available_slots.append((day, slot))
+                        if is_slot_available(course, day, slot,specific_professor.priority_classroom_1):
+                            priority1_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,specific_professor.priority_classroom_2):
+                            priority2_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,specific_professor.priority_classroom_3):
+                            priority3_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,-1):
+                            other_slots.append((day,slot))
 
-            morning_slots=[]
+            morning_priority1_slots=[]
+            morning_priority2_slots=[]
+            morning_priority3_slots=[]
+            morning_other_slots=[]
 
             for day in range(5):
                 if day == course["avoid_day"]:
                     continue 
                 for slot in range(5):  # Check up to slot 7 for consecutive slots
                     if slot != 5:
-                        if is_slot_available(course, day, slot):
-                            morning_slots.append((day, slot))
+                        if is_slot_available(course, day, slot,specific_professor.priority_classroom_1):
+                            morning_priority1_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,specific_professor.priority_classroom_2):
+                            morning_priority2_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,specific_professor.priority_classroom_3):
+                            morning_priority3_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,-1):
+                            morning_other_slots.append((day,slot))
 
-            for _ in range(course["hours"]):
-                    day = None
-                    start_slot = None
-                    if available_slots:
-                        day, start_slot = random.choice(available_slots)
-                        available_slots.remove((day, start_slot))
-                    elif morning_slots:
-                        day,start_slot = random.choice(morning_slots)
-                        morning_slots.remove((day, start_slot))
-                    else:
-                        print(f"No available slots for course {course['name']}")
-                        continue  # Skip this iteration if no slots available
+            while course["hours"]>0 and (priority1_slots or priority2_slots or priority3_slots or morning_priority1_slots or morning_priority2_slots or morning_priority3_slots or other_slots or morning_other_slots):
+                day = None
+                start_slot = None
+                if priority1_slots:
+                    day, start_slot = random.choice(priority1_slots)
+                    priority1_slots.remove((day, start_slot))
+                elif priority2_slots:
+                    day,start_slot = random.choice(priority2_slots)
+                    priority2_slots.remove((day, start_slot))
+                elif priority3_slots:
+                    day,start_slot = random.choice(priority3_slots)
+                    priority3_slots.remove((day, start_slot))
+                elif other_slots:
+                    day,start_slot = random.choice(other_slots)
+                    other_slots.remove((day, start_slot))
+                elif morning_priority1_slots:
+                    day,start_slot = random.choice(morning_priority1_slots)
+                    morning_priority1_slots.remove((day, start_slot))
+                elif morning_priority2_slots:
+                    day,start_slot = random.choice(morning_priority2_slots)
+                    morning_priority2_slots.remove((day, start_slot))
+                elif morning_priority3_slots:
+                    day,start_slot = random.choice(morning_priority3_slots)
+                    morning_priority3_slots.remove((day, start_slot))
+                elif morning_other_slots:
+                    day,start_slot = random.choice(morning_other_slots)
+                    morning_other_slots.remove((day, start_slot))
+                else:
+                    print(f"No available slots for course {course['name']}")
+                    continue  # Skip this iteration if no slots available
                         
-                    classroom = find_one_hour_classroom(day, start_slot)
-                    new_schedule = Schedule(
-                        batch_id=course["batch_id"],
-                        course_id=course["id"],
-                        professor_id=course["professor_id"],
-                        day=day,
-                        slot=start_slot,
-                        classroom_id= classroom.id
-                    )
-                    db.session.add(new_schedule)
-                    try:
-                        db.session.commit()
-                        flash('Priority course scheduled successfully (2-hour consecutive)', 'success')
-                    except:
-                        db.session.rollback()
-                        flash('Error scheduling priority course (2-hour consecutive)', 'error')
-                
-        for course in no_priority:
-            available_slots = []
-            hour=course["hours"]
+                classroom1 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_1)
+                classroom2 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_2)
+                classroom3 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_3)
+                last=find_available_classroom_onehour(day,slot)
 
+                decided_classroom=None
+                if classroom1:
+                    decided_classroom=classroom1
+                elif classroom2:
+                    decided_classroom=classroom2
+                elif classroom3:
+                    decided_classroom=classroom3
+                else:
+                    decided_classroom=last
+                course["hours"]-=1
+
+                new_schedule = Schedule(
+                    batch_id=course["batch_id"],
+                    course_id=course["id"],
+                    professor_id=course["professor_id"],
+                    day=day,
+                    slot=start_slot,
+                    classroom_id= decided_classroom.id
+                )
+                db.session.add(new_schedule)
+                try:
+                    db.session.commit()
+                    flash('Priority course scheduled successfully (2-hour consecutive)', 'success')
+                except:
+                    db.session.rollback()
+                    flash('Error scheduling priority course (2-hour consecutive)', 'error')
+
+        for course in no_priority:
+            priority1_slots=[]
+            priority2_slots=[]
+            priority3_slots=[]
+            other_slots=[]
+            specific_professor = Professor.query.filter(Professor.id == course["professor_id"]).first()
             for day in range(5):
                 if day == course["avoid_day"]:
                     continue 
                 for slot in range(9):  # Check up to slot 7 for consecutive slots
                     if slot != 5:
-                        if is_slot_available(course, day, slot):
-                            available_slots.append((day, slot))
+                        if is_slot_available(course, day, slot,specific_professor.priority_classroom_1):
+                            priority1_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,specific_professor.priority_classroom_2):
+                            priority2_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,specific_professor.priority_classroom_3):
+                            priority3_slots.append((day, slot))
+                        elif is_slot_available(course, day, slot,-1):
+                            other_slots.append((day,slot))
 
-            for _ in range(hour):
-                    if not available_slots:
-                        print(f"No available slots for course {course['name']}")
-                        continue  # skip scheduling if no slot is available
-                    day, start_slot = random.choice(available_slots)
-                    available_slots.remove((day, start_slot))
+            while course["hours"]>0 and (priority1_slots or priority2_slots or priority3_slots or other_slots):
+                day = None
+                start_slot = None
+                if priority1_slots:
+                    day, start_slot = random.choice(priority1_slots)
+                    priority1_slots.remove((day, start_slot))
+                elif priority2_slots:
+                    day,start_slot = random.choice(priority2_slots)
+                    priority2_slots.remove((day, start_slot))
+                elif priority3_slots:
+                    day,start_slot = random.choice(priority3_slots)
+                    priority3_slots.remove((day, start_slot))
+                elif other_slots:
+                    day,start_slot = random.choice(other_slots)
+                    other_slots.remove((day, start_slot))
+                else:
+                    print(f"No available slots for course {course['name']}")
+                    continue  # Skip this iteration if no slots available
                         
-                    classroom = find_one_hour_classroom(day, start_slot)
-                    new_schedule = Schedule(
-                        batch_id=course["batch_id"],
-                        course_id=course["id"],
-                        professor_id=course["professor_id"],
-                        day=day,
-                        slot=start_slot,
-                        classroom_id= classroom.id
-                    )
-                    db.session.add(new_schedule)
-                    try:
-                        db.session.commit()
-                        flash('Priority course scheduled successfully (2-hour consecutive)', 'success')
-                    except:
-                        db.session.rollback()
-                        flash('Error scheduling priority course (2-hour consecutive)', 'error')
-                
+                classroom1 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_1)
+                classroom2 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_2)
+                classroom3 = find_available_classroom_with_priorityroom_onehour(day, start_slot,specific_professor.priority_classroom_3)
+                last=find_available_classroom_onehour(day,slot)
+
+                decided_classroom=None
+                if classroom1:
+                    decided_classroom=classroom1
+                elif classroom2:
+                    decided_classroom=classroom2
+                elif classroom3:
+                    decided_classroom=classroom3
+                else:
+                    decided_classroom=last
+                course["hours"]-=1
+                new_schedule = Schedule(
+                    batch_id=course["batch_id"],
+                    course_id=course["id"],
+                    professor_id=course["professor_id"],
+                    day=day,
+                    slot=start_slot,
+                    classroom_id= decided_classroom.id
+                )
+                db.session.add(new_schedule)
+                try:
+                    db.session.commit()
+                    flash('Priority course scheduled successfully (2-hour consecutive)', 'success')
+                except:
+                    db.session.rollback()
+                    flash('Error scheduling priority course (2-hour consecutive)', 'error')
 
     return render_template('timetable_home.html')
 

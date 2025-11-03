@@ -305,7 +305,7 @@
 
             <div class="form-group">
                     <label>Lab Professor</label>
-                    <select name="professor_id_lab" required>
+                    <select name="professor_id_lab">
                         <option value="">-- Select Professor --</option>
                         {% for prof in professors %}
                         <option value="{{ prof.id }}">{{ prof.name }}</option>

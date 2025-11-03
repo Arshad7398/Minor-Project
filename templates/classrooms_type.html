@@ -253,67 +253,29 @@
 </head>
 <body>
     <div class="container">
-        <h1><i class="fas fa-chalkboard-teacher"></i> Manage Professors</h1>
+        <h1><i class="fas fa-chalkboard-teacher"></i> Manage Classrooms</h1>
         
         <!-- Add Single Classroom Card -->
         <div class="card">
-            <h2><i class="fas fa-plus-circle"></i> Add Professor</h2>
+            <h2><i class="fas fa-plus-circle"></i> Add New Classroom</h2>
             <form method="POST" enctype="multipart/form-data">
-
-
                 <div class="form-group">
-                    <label for="professor_name">Name</label>
-                    <input type="text" id="professor_name" name="name" placeholder="Enter Professor name" required>
+                    <label for="classroom_name">Classroom Name</label>
+                    <input type="text" id="classroom_name" name="name" placeholder="Enter classroom name" required>
                 </div>
                 
-                <!-- <div class="form-group">
-                    <label for="professor_email">Email</label>
-                    <input type="email" id="professor_email" name="email" placeholder="Enter Email" required>
-                </div> -->
-
-                 <div class="form-group">
-                    <label>Classrooms</label>
-                    <select name="professor_id1" required>
-                        <option value="">-- Select Professor --</option>
-                        {% for prof in classrooms %}
-                        <option value="{{ prof.id }}">{{ prof.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Classrooms</label>
-                    <select name="professor_id2" required>
-                        <option value="">-- Select Professor --</option>
-                        {% for prof in classrooms %}
-                        <option value="{{ prof.id }}">{{ prof.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Classrooms</label>
-                    <select name="professor_id3" required>
-                        <option value="">-- Select Professor --</option>
-                        {% for prof in classrooms %}
-                        <option value="{{ prof.id }}">{{ prof.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
                 
                 <div class="btn-group">
                     <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Save Professor Details
+                        <i class="fas fa-save"></i> Save Classroom
                     </button>
                 </div>
-
             </form>
         </div>
         
         <!-- Bulk Upload Card -->
         <div class="card">
-            <h2><i class="fas fa-file-upload"></i> Bulk Upload Professors</h2>
+            <h2><i class="fas fa-file-upload"></i> Bulk Upload Classrooms</h2>
             <form method="POST" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="file-upload" class="file-label">
@@ -323,8 +285,8 @@
                     <input type="file" id="file-upload" name="file" accept=".csv" class="file-input" required>
                     
                     <div class="instructions">
-                        <p><strong>CSV Format:</strong> professor_name,email</p>
-                        <p><strong>Example:</strong> ABCD,abcd@gmail.com</p>
+                        <p><strong>CSV Format:</strong> classroom_name,capacity</p>
+                        <p><strong>Example:</strong> Lecture Hall A,120</p>
                     </div>
                 </div>
                 
@@ -341,25 +303,18 @@
         
         <!-- Classrooms List Card -->
         <div class="card">
-            <h2><i class="fas fa-list"></i>All Professors</h2>
+            <h2><i class="fas fa-list"></i> Existing Classrooms</h2>
             
-            {% if professors %}
+            {% if classrooms %}
             <table>
-                <thead>
-                    <tr>
-                        <th>Classroom Name</th>
-                    </tr>
-                </thead>
+                
                 <tbody>
-                    {% for professor in professors %}
+                    {% for classroom in classrooms %}
                     <tr>
-                        <td>{{ professor.name }}</td>
                         <td>
-                            <form action="{{ url_for('delete_professor', id=professor.id) }}" method="post" style="display:inline;">
-                                <button type="submit" onclick="return confirm('Are you sure you want to delete {{ professor.name }}?');">
-                                Delete
-                                </button>
-                            </form>
+                            <a href="{{ url_for('manage_classrooms', idd=classroom.id) }}">
+                            {{ classroom.name }}
+                        </a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -368,7 +323,7 @@
             {% else %}
             <div style="text-align: center; padding: 2rem; color: var(--gray);">
                 <i class="fas fa-chalkboard" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-                <p>No classrooms have been added yet. Add your first classroom above.</p>
+                <p>No classrooms Type have been added yet. Add your first classroom above.</p>
             </div>
             {% endif %}
         </div>
