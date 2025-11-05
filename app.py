@@ -401,22 +401,24 @@ def manage_professors():
                     invalid_count = 0
                     
                     for row in csv_input:
-                        if len(row) < 2 or not row[0].strip() or not row[1].strip():
+                        if len(row) < 4 or not row[0].strip() or not row[1].strip() or not row[2].strip() or not row[3].strip():
                             invalid_count += 1
                             continue
                         
                         name = row[0].strip()
-                        email = row[1].strip()
+                        id1 = row[1].strip()
+                        id2= row[2].strip()
+                        id3= row[3].strip()
 
                         
                         if Professor.query.filter(
-                            (Professor.name == name) | (Professor.email == email)
+                            Professor.name == name
                         ).first():
                             duplicate_count += 1
                             continue
                         
                         # Add new professor
-                        new_professor = Professor(name=name, email=email)
+                        new_professor = Professor(name=name,priority_classroom_1=id1,priority_classroom_2=id2, priority_classroom_3=id3)
                         db.session.add(new_professor)
                         success_count += 1
 
@@ -458,23 +460,56 @@ def manage_professors():
 @app.route('/classroom_type',methods=['GET','POST'])
 def manage_classrooms_type():
     if request.method=="POST":
-        name = request.form.get("name")
-        if name:
-            new_classroom_type = Building(name=name)
-            db.session.add(new_classroom_type)
-            try:
-                db.session.commit()
-                flash('Classroom Type added successfully', 'success')
-            except:
-                db.session.rollback()
-                flash('Error adding classroom', 'error')
+        if 'file' in request.files:
+            file = request.files['file']
+            if file.filename != '':
+                try:
+                    stream = TextIOWrapper(file.stream)
+                    csv_input = csv.reader(stream)
+                    next(csv_input)
+                    success_count = 0
+                    duplicate_count = 0
+                    invalid_count = 0
+                    
+                    for row in csv_input:
+                        if len(row) < 1 or not row[0].strip():
+                            invalid_count += 1
+                            continue
+                        
+                        name = row[0].strip()
+                        try:    
+                            if Building.query.filter_by(name=name).first():
+                                duplicate_count += 1
+                                continue
+                                
+                            new_lab = Building(name=name)
+                            db.session.add(new_lab)
+                            success_count += 1
+                        except ValueError:
+                            invalid_count += 1
+                            continue
+                            
+                    db.session.commit()
+                    flash(f'Successfully added {success_count} labs. {duplicate_count} duplicates skipped. {invalid_count} invalid rows ignored.', 
+                          'success' if success_count else 'warning')
+                except Exception as e:
+                    db.session.rollback()
+                    flash(f'Error processing CSV: {str(e)}', 'error')
+        else:
+            name = request.form.get("name")
+            if name:
+                new_classroom_type = Building(name=name)
+                db.session.add(new_classroom_type)
+                try:
+                    db.session.commit()
+                    flash('Classroom Type added successfully', 'success')
+                except:
+                    db.session.rollback()
+                    flash('Error adding classroom', 'error')
 
         return redirect(url_for("manage_classrooms_type"))
 
     classrooms = Building.query.all()
-    """print("All classrooms in database:")
-    for c in classrooms:
-        print(f"ID: {c.id}, Name: {c.name}, Capacity: {c.capacity}")"""
     return render_template('classrooms_type.html', classrooms=classrooms)
 
 @app.route('/classrooms/<int:idd>', methods=['GET', 'POST'])
@@ -509,7 +544,7 @@ def manage_classrooms(idd):
                             duplicate_count += 1
                             continue
                         
-                        new_classroom = Classroom(name=name, capacity=capacity)
+                        new_classroom = Classroom(name=name, capacity=capacity, building_id=idd)
                         db.session.add(new_classroom)
                         success_count += 1
                     
