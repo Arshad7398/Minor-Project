@@ -253,21 +253,21 @@
 </head>
 <body>
     <div class="container">
-        <h1><i class="fas fa-chalkboard-teacher"></i> Manage Classrooms</h1>
+        <h1><i class="fas fa-chalkboard-teacher"></i> Manage Classrooms Buildings</h1>
         
         <!-- Add Single Classroom Card -->
         <div class="card">
-            <h2><i class="fas fa-plus-circle"></i> Add New Classroom</h2>
+            <h2><i class="fas fa-plus-circle"></i> Add New Classroom Building</h2>
             <form method="POST" enctype="multipart/form-data">
                 <div class="form-group">
-                    <label for="classroom_name">Classroom Name</label>
+                    <label for="classroom_name">Building Name</label>
                     <input type="text" id="classroom_name" name="name" placeholder="Enter classroom name" required>
                 </div>
                 
                 
                 <div class="btn-group">
                     <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Save Classroom
+                        <i class="fas fa-save"></i> Save Building
                     </button>
                 </div>
             </form>
@@ -275,7 +275,7 @@
         
         <!-- Bulk Upload Card -->
         <div class="card">
-            <h2><i class="fas fa-file-upload"></i> Bulk Upload Classrooms</h2>
+            <h2><i class="fas fa-file-upload"></i> Bulk Upload Buildings</h2>
             <form method="POST" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="file-upload" class="file-label">
@@ -285,8 +285,8 @@
                     <input type="file" id="file-upload" name="file" accept=".csv" class="file-input" required>
                     
                     <div class="instructions">
-                        <p><strong>CSV Format:</strong> classroom_name,capacity</p>
-                        <p><strong>Example:</strong> Lecture Hall A,120</p>
+                        <p><strong>CSV Format:</strong> Building_name</p>
+                        <p><strong>Example:</strong> Lecture Hall A</p>
                     </div>
                 </div>
                 
@@ -303,7 +303,7 @@
         
         <!-- Classrooms List Card -->
         <div class="card">
-            <h2><i class="fas fa-list"></i> Existing Classrooms</h2>
+            <h2><i class="fas fa-list"></i> Existing Buildings</h2>
             
             {% if classrooms %}
             <table>

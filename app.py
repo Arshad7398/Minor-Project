@@ -370,18 +370,61 @@ def download_timetable():
 
 @app.route('/create_batch', methods=['GET', 'POST'])
 def create_batch():
-    if request.method == 'POST':
-        batch_name = request.form['name']
-        capacity = request.form.get('capacity')
-        new_batch = Batch(name=batch_name,capacity=int(capacity))
-        db.session.add(new_batch)
-        try:
-            db.session.commit()
-            flash('Batch created successfully', 'success')
-        except:
-            db.session.rollback()
-            flash('Error creating batch', 'error')
-        return redirect(url_for('index'))
+    if request.method == "POST":
+        if 'file' in request.files:
+            file = request.files["file"]
+            if file.filename != '':
+                try:
+                    stream = TextIOWrapper(file.stream)
+                    csv_input = csv.reader(stream)
+                    next(csv_input)
+                    
+                    success_count = 0
+                    duplicate_count = 0
+                    invalid_count = 0
+                    
+                    for row in csv_input:
+                        if len(row) < 2 or not row[0].strip() or not row[1].strip():
+                            invalid_count += 1
+                            continue
+                        
+                        name = row[0].strip()
+                        try:
+                            capacity = int(row[1])
+                        except ValueError:
+                            invalid_count += 1
+                            continue
+                        
+                        if Batch.query.filter_by(name=name).first():
+                            duplicate_count += 1
+                            continue
+                        
+                        new_classroom = Batch(name=name, capacity=capacity)
+                        db.session.add(new_classroom)
+                        success_count += 1
+                    
+                    db.session.commit()
+                    flash_message = f"Successfully added {success_count} classrooms"
+                    if duplicate_count:
+                        flash_message += f", skipped {duplicate_count} duplicates"
+                    if invalid_count:
+                        flash_message += f", ignored {invalid_count} invalid rows"
+                    flash(flash_message, 'success' if success_count else 'warning')
+                except Exception as e:
+                    db.session.rollback()
+                    flash(f'Error processing file: {str(e)}', 'error')
+        else:
+            name = request.form.get("name")
+            capacity = request.form.get("capacity")
+            if name and capacity:
+                new_classroom = Batch(name=name, capacity=capacity)
+                db.session.add(new_classroom)
+                try:
+                    db.session.commit()
+                    flash('Classroom added successfully', 'success')
+                except:
+                    db.session.rollback()
+                    flash('Error adding classroom', 'error')
     return render_template('create_batch.html')
 
 @app.route('/professors',methods=['GET','POST'])
