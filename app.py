@@ -28,8 +28,11 @@ class Classroom(db.Model):
     building_id = db.Column(db.Integer, db.ForeignKey('building.id'), nullable=False)
 
 class Course(db.Model):
+    __table_args__ = (
+        db.UniqueConstraint('name', 'batch_id', name='unique_course_per_batch'),
+    )
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), unique=True, nullable=False)
+    name = db.Column(db.String(50), nullable=False)
     credits = db.Column(db.Integer, nullable=False)
     is_lab = db.Column(db.Boolean, default=False)
     priority = db.Column(db.Boolean, default=False)# for 2 hour class
@@ -188,6 +191,8 @@ def is_slot_available(course, day, slot, building_id,batch):
 def is_slot_available_lab_priority1(course, day, slot,batch, is_lab=False):
     # batch = Batch.query.filter(Batch.id == course.batch_id).first()
     lab=Lab.query.filter_by(id=course.lab_id1).first()
+    if not lab:
+        return False
     if batch.capacity>lab.capacity:
         return False
     existing_schedule = Schedule.query.filter_by(
@@ -213,6 +218,8 @@ def is_slot_available_lab_priority1(course, day, slot,batch, is_lab=False):
 
 def is_slot_available_lab_priority2(course, day, slot,batch, is_lab=False):
     lab=Lab.query.filter_by(id=course.lab_id2).first()
+    if not lab:
+        return False
     if batch.capacity>lab.capacity:
         return False
     existing_schedule = Schedule.query.filter_by(
@@ -238,6 +245,8 @@ def is_slot_available_lab_priority2(course, day, slot,batch, is_lab=False):
 
 def is_slot_available_lab_priority3(course, day, slot,batch, is_lab=False):
     lab=Lab.query.filter_by(id=course.lab_id3).first()
+    if not lab:
+        return False
     if batch.capacity>lab.capacity:
         return False
     existing_schedule = Schedule.query.filter_by(
@@ -955,7 +964,7 @@ def get_timetable():
             for day in range(5):
                 if day == course.avoid_day:
                     continue 
-                for slot in range(6,8):
+                for slot in range(6,9):
                     if is_slot_available_lab_priority1(course, day, slot,batch) and is_slot_available_lab_priority1(course, day, slot + 1,batch):
                         evening_labp1.append((day, slot))
                         break
@@ -972,7 +981,7 @@ def get_timetable():
             for day in range(5):
                     if day == course.avoid_day:
                         continue 
-                    for slot in range(6,8):
+                    for slot in range(6,9):
                         if is_slot_available_lab_priority2(course, day, slot,batch) and is_slot_available_lab_priority2(course, day, slot + 1,batch):
                             evening_labp2.append((day, slot))
                             break
@@ -989,13 +998,13 @@ def get_timetable():
             for day in range(5):
                     if day == course.avoid_day:
                         continue 
-                    for slot in range(6,8):
+                    for slot in range(6,9):
                         if is_slot_available_lab_priority3(course, day, slot,batch) and is_slot_available_lab_priority3(course, day, slot + 1,batch):
                             evening_labp3.append((day, slot))
                             break
             
             for day in range(5): 
-                for slot in range(8): 
+                for slot in range(9): 
                     if slot != 4 and slot!=5:
                         if is_slot_available_lab(course, day, slot,batch) and is_slot_available_lab(course, day, slot + 1,batch):
                             other.append((day, slot))
@@ -1139,7 +1148,7 @@ def get_timetable():
             for day in range(5):
                     if day == course["avoid_day"] or day in days_done:
                         continue 
-                    for slot in range(5,9):  # Check up to slot 7 for consecutive slots
+                    for slot in range(5,10):  # Check up to slot 7 for consecutive slots
                         if slot !=5:
                             if is_slot_available(course, day, slot,specific_professor.priority_classroom_1,batch):
                                 morning_priority1_slots.append((day, slot))
@@ -1175,7 +1184,7 @@ def get_timetable():
             last_other_slots=[]
 
             for day in range(5):
-                for slot in range(9):  # Check up to slot 7 for consecutive slots
+                for slot in range(10):  # Check up to slot 7 for consecutive slots
                     if slot !=5:
                         if is_slot_available(course, day, slot,specific_professor.priority_classroom_1,batch):
                             last_priority1_slots.append((day, slot))
@@ -1272,7 +1281,7 @@ def get_timetable():
             last_other_slots=[]
 
             for day in range(5):
-                for slot in range(9):
+                for slot in range(10):
                     if slot != 5:
                         if is_slot_available(course, day, slot,specific_professor.priority_classroom_1,batch):
                             last_priority1_slots.append((day, slot))
@@ -1345,7 +1354,7 @@ def get_timetable():
             for day in range(5):
                 if day == course["avoid_day"]:
                     continue 
-                for slot in range(5,8):
+                for slot in range(5,9):
                     if slot != 4 and slot !=5:
                         if is_slot_available(course, day, slot,specific_professor.priority_classroom_1,batch) and is_slot_available(course, day, slot+1,specific_professor.priority_classroom_1,batch):
                             priority_priority1_slots.append((day, slot))
@@ -1443,7 +1452,7 @@ def get_timetable():
             for day in range(5):
                     if day == course["avoid_day"] or day in days_done:
                         continue 
-                    for slot in range(5,9):  # Check up to slot 7 for consecutive slots
+                    for slot in range(5,10):  # Check up to slot 7 for consecutive slots
                         if slot !=5:
                             if is_slot_available(course, day, slot,specific_professor.priority_classroom_1,batch):
                                 evening_priority1_slots.append((day, slot))
@@ -1460,7 +1469,7 @@ def get_timetable():
             last_other_slots=[]
 
             for day in range(5):
-                for slot in range(9):  # Check up to slot 7 for consecutive slots
+                for slot in range(10):  # Check up to slot 7 for consecutive slots
                     if slot !=5:
                         if is_slot_available(course, day, slot,specific_professor.priority_classroom_1,batch):
                             last_priority1_slots.append((day, slot))
@@ -1556,7 +1565,7 @@ def get_timetable():
             last_other_slots=[]
 
             for day in range(5):
-                for slot in range(9):
+                for slot in range(10):
                     if slot != 5:
                         if is_slot_available(course, day, slot,specific_professor.priority_classroom_1,batch):
                             last_priority1_slots.append((day, slot))
@@ -1629,7 +1638,7 @@ def get_timetable():
             for day in range(5):
                 if day == course["avoid_day"]:
                     continue 
-                for slot in range(8):  # Check up to slot 7 for consecutive slots
+                for slot in range(9):  # Check up to slot 7 for consecutive slots
                     if slot != 5 and slot !=4:
                         if is_slot_available(course, day, slot,specific_professor.priority_classroom_1,batch) and is_slot_available(course, day, slot+1,specific_professor.priority_classroom_1,batch):
                             priority_priority1_slots.append((day, slot))
@@ -1705,7 +1714,7 @@ def get_timetable():
             for day in range(5):
                     if day == course["avoid_day"] or day in days_done:
                         continue 
-                    for slot in range(9):  # Check up to slot 7 for consecutive slots
+                    for slot in range(10):  # Check up to slot 7 for consecutive slots
                         if slot !=5:
                             if is_slot_available(course, day, slot,specific_professor.priority_classroom_1,batch):
                                 priority1_slots.append((day, slot))
@@ -1777,7 +1786,7 @@ def get_timetable():
             last_other_slots=[]
 
             for day in range(5):
-                for slot in range(9):
+                for slot in range(10):
                     if slot != 5:
                         if is_slot_available(course, day, slot,specific_professor.priority_classroom_1,batch):
                             last_priority1_slots.append((day, slot))
@@ -1870,7 +1879,7 @@ def get_timetable():
             for day in range(5):
                 if day == course["avoid_day"]:
                     continue 
-                for slot in range(5,9):  # Check up to slot 7 for consecutive slots
+                for slot in range(5,10):  # Check up to slot 7 for consecutive slots
                     if slot != 5:
                         if is_slot_available(course, day, slot,specific_professor.priority_classroom_1,batch):
                             morning_priority1_slots.append((day, slot))
@@ -1953,7 +1962,7 @@ def get_timetable():
             last_other_slots=[]
 
             for day in range(5):
-                for slot in range(9):
+                for slot in range(10):
                     if slot != 5:
                         if is_slot_available(course, day, slot,specific_professor.priority_classroom_1,batch):
                             last_priority1_slots.append((day, slot))
@@ -2027,7 +2036,7 @@ def get_timetable():
             for day in range(5):
                 if day == course["avoid_day"]:
                     continue 
-                for slot in range(5,9):  # Check up to slot 7 for consecutive slots
+                for slot in range(5,10):  # Check up to slot 7 for consecutive slots
                     if slot != 5:
                         if is_slot_available(course, day, slot,specific_professor.priority_classroom_1,batch):
                             priority1_slots.append((day, slot))
@@ -2130,7 +2139,7 @@ def get_timetable():
             last_other_slots=[]
 
             for day in range(5):
-                for slot in range(9):
+                for slot in range(10):
                     if slot != 5:
                         if is_slot_available(course, day, slot,specific_professor.priority_classroom_1,batch):
                             last_priority1_slots.append((day, slot))
@@ -2202,7 +2211,7 @@ def get_timetable():
             for day in range(5):
                 if day == course["avoid_day"]:
                     continue 
-                for slot in range(9):  # Check up to slot 7 for consecutive slots
+                for slot in range(10):  # Check up to slot 7 for consecutive slots
                     if slot != 5:
                         if is_slot_available(course, day, slot,specific_professor.priority_classroom_1,batch):
                             priority1_slots.append((day, slot))
@@ -2277,7 +2286,7 @@ def get_timetable():
             last_other_slots=[]
             specific_professor = Professor.query.filter(Professor.id == course["professor_id"]).first()
             for day in range(5):
-                for slot in range(9):  # Check up to slot 7 for consecutive slots
+                for slot in range(10):  # Check up to slot 7 for consecutive slots
                     if slot != 5:
                         if is_slot_available(course, day, slot,specific_professor.priority_classroom_1,batch):
                             last_priority1_slots.append((day, slot))
@@ -2344,7 +2353,7 @@ def get_timetable():
 def specific_batch_timetable(id):
     flash("HELLO")
     schedules = Schedule.query.filter_by(batch_id=id).all()
-    timetable = [["-" for _ in range(9)] for _ in range(5)]
+    timetable = [["-" for _ in range(10)] for _ in range(5)]
     
     # Set lunch break for all days at slot 4 (12:00 PM - 1:00 PM)
     # for day in range(5):
@@ -2370,7 +2379,7 @@ def specific_batch_timetable(id):
 def specific_professor_timetable(id):
     flash("HELLO")
     schedules = Schedule.query.filter_by(professor_id=id).all()
-    timetable = [["-" for _ in range(9)] for _ in range(5)]
+    timetable = [["-" for _ in range(10)] for _ in range(5)]
 
     print(len(schedules))
     for schedule in schedules:
@@ -2393,7 +2402,7 @@ def specific_professor_timetable(id):
 def specific_classroom_timetable(id):
     flash("HELLO")
     schedules = Schedule.query.filter_by(classroom_id=id).all()
-    timetable = [["-" for _ in range(9)] for _ in range(5)]
+    timetable = [["-" for _ in range(10)] for _ in range(5)]
 
     print(len(schedules))
     for schedule in schedules:
@@ -2416,7 +2425,7 @@ def specific_classroom_timetable(id):
 def specific_lab_timetable(id):
     flash("HELLO")
     schedules = Schedule.query.filter_by(lab_id=id).all()
-    timetable = [["-" for _ in range(9)] for _ in range(5)]
+    timetable = [["-" for _ in range(10)] for _ in range(5)]
 
     print(len(schedules))
     for schedule in schedules:

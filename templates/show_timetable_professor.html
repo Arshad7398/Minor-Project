@@ -250,7 +250,7 @@
             <thead>
                 <tr>
                     <th>Day/Time</th>
-                    {% for i in range(9) %}
+                    {% for i in range(10) %}
                         <th>{{ i+8 }}:00 - {{ i+9 }}:00</th>
                     {% endfor %}
                 </tr>
@@ -266,7 +266,7 @@
                             {% elif day == 4 %}Friday
                             {% endif %}
                         </td>
-                        {% for hour in range(9) %}
+                        {% for hour in range(10) %}
                             <td>{{ timetable[day][hour] }}</td>
                         {% endfor %}
                     </tr>
