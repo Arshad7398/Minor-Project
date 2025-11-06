@@ -276,9 +276,10 @@
                         <a href="{{ url_for('manage_batch', batch_id=batch.id) }}" class="batch-btn manage">
                             <i class="fas fa-cog"></i> Manage
                         </a>
-                        <a href="{{ url_for('select_batches') }}" class="batch-btn download">
+                        <a href="{{ url_for('download_timetable', batch_id=batch.id) }}" class="batch-btn download">
                             <i class="fas fa-download"></i> Download
                         </a>
+
                     </div>
                     <div>
                         <form action="{{ url_for('delete_batch', id=batch.id) }}" method="post" style="display:inline;">
@@ -303,11 +304,26 @@
             
             {% if batches %}
             <div class="download-all">
-                <a href="{{ url_for('select_batches') }}" class="btn btn-primary">
+                <a href="{{ url_for('download_timetable_all_batches') }}" class="btn btn-primary">
                     <i class="fas fa-file-export icon"></i> Download All Batches
                 </a>
             </div>
             {% endif %}
+            <div class="download-all">
+                <a href="{{ url_for('download_timetable_all_professors') }}" class="btn btn-primary">
+                    <i class="fas fa-file-export icon"></i> Download All Professors
+                </a>
+            </div>
+            <div class="download-all">
+                <a href="{{ url_for('download_timetable_all_classrooms') }}" class="btn btn-primary">
+                    <i class="fas fa-file-export icon"></i> Download All Classrooms
+                </a>
+            </div>
+            <div class="download-all">
+                <a href="{{ url_for('download_timetable_all_labs') }}" class="btn btn-primary">
+                    <i class="fas fa-file-export icon"></i> Download All Labs
+                </a>
+            </div>
         </div>
     </div>
 </body>

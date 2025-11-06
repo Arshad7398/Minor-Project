@@ -12,6 +12,8 @@ from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
 from pathlib import Path
 from zipfile import ZipFile
+from flask import Response
+from io import StringIO
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -279,9 +281,82 @@ def is_slot_available_lab(course, day, slot, is_lab=False):
     ).first()
     return not (existing_schedule or professor_schedule)
 
+def generate_excel_professor(prof_id):
+    if not prof_id:
+        return None
+
+    prof = Professor.query.get(prof_id)
+    if not prof:
+        return None
+
+    time_slots = [
+        "08:00 AM - 09:00 AM", "09:00 AM - 10:00 AM", "10:00 AM - 11:00 AM",
+        "11:00 AM - 12:00 PM", "12:00 PM - 01:00 PM", "01:00 PM - 02:00 PM",
+        "02:00 PM - 03:00 PM", "03:00 PM - 04:00 PM", "04:00 PM - 05:00 PM",
+        "05:00 PM - 06:00 PM"
+    ]
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+
+    timetable = [["" for _ in range(10)] for _ in range(5)]
+    
+    # Set lunch break for all days at slot 4 (12:00 PM - 1:00 PM)
+    # for day in range(5):
+    timetable[0][5] = "Lunch"
+    timetable[1][5] = "Lunch"
+    timetable[2][5] = "Lunch"
+    timetable[3][5] = "Lunch"
+    timetable[4][5] = "Lunch"
+    schedules = Schedule.query.filter_by(professor_id=prof.id).all()
+
+    for schedule in schedules:
+        if schedule.slot == 5:  # Skip lunch slot
+            continue
+        course = Course.query.get(schedule.course_id)
+        professor = Professor.query.get(schedule.professor_id)
+        classroom = Classroom.query.get(schedule.classroom_id)
+        lab = Lab.query.get(schedule.lab_id)
+        
+        entry = f"{course.name} ({professor.name})"
+        if lab:
+            entry += f" [{lab.name}]"
+        if classroom:
+            entry += f" {{{classroom.name}}}"
+            
+        timetable[schedule.day][schedule.slot] = entry
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"TimeTable"
+
+    ws['A1'] = f"Timetable for Professor: {prof.name}"
+    ws['A1'].font = Font(size=14, bold=True)
+    ws.merge_cells('A1:J1')
+
+    ws['A2'] = "Day"
+    for col_index, time_slot in enumerate(time_slots, start=2):
+        col_letter = get_column_letter(col_index)
+        ws[f'{col_letter}2'] = time_slot
+
+    for day_index, day_name in enumerate(days):
+        ws[f"A{day_index + 3}"] = day_name
+        for slot_index, slot_content in enumerate(timetable[day_index]):
+            col_letter = get_column_letter(slot_index + 2)
+            ws[f"{col_letter}{day_index + 3}"] = slot_content
+
+    current_dir = Path(__file__).parent
+    timetables_dir = current_dir / "timetables"
+    timetables_dir.mkdir(exist_ok=True)
+    excel_path = timetables_dir / f"professor_{prof.name}.xlsx"
+    wb.save(excel_path)
+    print("CORRECT")
+    
+    return excel_path
+
 def generate_excel(batch_ids):
     if not batch_ids:
         return None
+    
+    print("WRONG")
 
     batch = Batch.query.get(batch_ids[0])
     if not batch:
@@ -290,19 +365,24 @@ def generate_excel(batch_ids):
     time_slots = [
         "08:00 AM - 09:00 AM", "09:00 AM - 10:00 AM", "10:00 AM - 11:00 AM",
         "11:00 AM - 12:00 PM", "12:00 PM - 01:00 PM", "01:00 PM - 02:00 PM",
-        "02:00 PM - 03:00 PM", "03:00 PM - 04:00 PM", "04:00 PM - 05:00 PM"
+        "02:00 PM - 03:00 PM", "03:00 PM - 04:00 PM", "04:00 PM - 05:00 PM",
+        "05:00 PM - 06:00 PM"
     ]
     days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 
-    timetable = [["" for _ in range(9)] for _ in range(5)]
+    timetable = [["" for _ in range(10)] for _ in range(5)]
     
     # Set lunch break for all days at slot 4 (12:00 PM - 1:00 PM)
     # for day in range(5):
-    timetable[2][4] = "Lunch"
+    timetable[0][5] = "Lunch"
+    timetable[1][5] = "Lunch"
+    timetable[2][5] = "Lunch"
+    timetable[3][5] = "Lunch"
+    timetable[4][5] = "Lunch"
     schedules = Schedule.query.filter_by(batch_id=batch.id).all()
 
     for schedule in schedules:
-        if schedule.slot == 4:  # Skip lunch slot
+        if schedule.slot == 5:  # Skip lunch slot
             continue
         course = Course.query.get(schedule.course_id)
         professor = Professor.query.get(schedule.professor_id)
@@ -339,11 +419,437 @@ def generate_excel(batch_ids):
     current_dir = Path(__file__).parent
     timetables_dir = current_dir / "timetables"
     timetables_dir.mkdir(exist_ok=True)
-    excel_path = timetables_dir / f"batch_{batch.id}.xlsx"
+    excel_path = timetables_dir / f"batch_{batch.name}.xlsx"
     wb.save(excel_path)
     
     return excel_path
 
+def generate_excel_lab(prof_id):
+    if not prof_id:
+        return None
+
+    prof = Lab.query.get(prof_id)
+    if not prof:
+        return None
+
+    time_slots = [
+        "08:00 AM - 09:00 AM", "09:00 AM - 10:00 AM", "10:00 AM - 11:00 AM",
+        "11:00 AM - 12:00 PM", "12:00 PM - 01:00 PM", "01:00 PM - 02:00 PM",
+        "02:00 PM - 03:00 PM", "03:00 PM - 04:00 PM", "04:00 PM - 05:00 PM",
+        "05:00 PM - 06:00 PM"
+    ]
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+
+    timetable = [["" for _ in range(10)] for _ in range(5)]
+    
+    # Set lunch break for all days at slot 4 (12:00 PM - 1:00 PM)
+    # for day in range(5):
+    timetable[0][5] = "Lunch"
+    timetable[1][5] = "Lunch"
+    timetable[2][5] = "Lunch"
+    timetable[3][5] = "Lunch"
+    timetable[4][5] = "Lunch"
+    schedules = Schedule.query.filter_by(lab_id=prof.id).all()
+
+    for schedule in schedules:
+        if schedule.slot == 5:  # Skip lunch slot
+            continue
+        course = Course.query.get(schedule.course_id)
+        professor = Professor.query.get(schedule.professor_id)
+        classroom = Classroom.query.get(schedule.classroom_id)
+        lab = Lab.query.get(schedule.lab_id)
+        
+        entry = f"{course.name} ({professor.name})"
+        if lab:
+            entry += f" [{lab.name}]"
+        if classroom:
+            entry += f" {{{classroom.name}}}"
+            
+        timetable[schedule.day][schedule.slot] = entry
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"TimeTable"
+
+    ws['A1'] = f"Timetable for Lab: {prof.name}"
+    ws['A1'].font = Font(size=14, bold=True)
+    ws.merge_cells('A1:J1')
+
+    ws['A2'] = "Day"
+    for col_index, time_slot in enumerate(time_slots, start=2):
+        col_letter = get_column_letter(col_index)
+        ws[f'{col_letter}2'] = time_slot
+
+    for day_index, day_name in enumerate(days):
+        ws[f"A{day_index + 3}"] = day_name
+        for slot_index, slot_content in enumerate(timetable[day_index]):
+            col_letter = get_column_letter(slot_index + 2)
+            ws[f"{col_letter}{day_index + 3}"] = slot_content
+
+    current_dir = Path(__file__).parent
+    timetables_dir = current_dir / "timetables"
+    timetables_dir.mkdir(exist_ok=True)
+    excel_path = timetables_dir / f"lab_{prof.name}.xlsx"
+    wb.save(excel_path)
+    print("CORRECT")
+    
+    return excel_path
+
+def generate_excel_classroom(prof_id):
+    if not prof_id:
+        return None
+
+    prof = Classroom.query.get(prof_id)
+    if not prof:
+        return None
+
+    time_slots = [
+        "08:00 AM - 09:00 AM", "09:00 AM - 10:00 AM", "10:00 AM - 11:00 AM",
+        "11:00 AM - 12:00 PM", "12:00 PM - 01:00 PM", "01:00 PM - 02:00 PM",
+        "02:00 PM - 03:00 PM", "03:00 PM - 04:00 PM", "04:00 PM - 05:00 PM",
+        "05:00 PM - 06:00 PM"
+    ]
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+
+    timetable = [["" for _ in range(10)] for _ in range(5)]
+    
+    # Set lunch break for all days at slot 4 (12:00 PM - 1:00 PM)
+    # for day in range(5):
+    timetable[0][5] = "Lunch"
+    timetable[1][5] = "Lunch"
+    timetable[2][5] = "Lunch"
+    timetable[3][5] = "Lunch"
+    timetable[4][5] = "Lunch"
+    schedules = Schedule.query.filter_by(classroom_id=prof.id).all()
+
+    for schedule in schedules:
+        if schedule.slot == 5:  # Skip lunch slot
+            continue
+        course = Course.query.get(schedule.course_id)
+        professor = Professor.query.get(schedule.professor_id)
+        classroom = Classroom.query.get(schedule.classroom_id)
+        lab = Lab.query.get(schedule.lab_id)
+        
+        entry = f"{course.name} ({professor.name})"
+        if lab:
+            entry += f" [{lab.name}]"
+        if classroom:
+            entry += f" {{{classroom.name}}}"
+            
+        timetable[schedule.day][schedule.slot] = entry
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"TimeTable"
+
+    ws['A1'] = f"Timetable for Classroom: {prof.name}"
+    ws['A1'].font = Font(size=14, bold=True)
+    ws.merge_cells('A1:J1')
+
+    ws['A2'] = "Day"
+    for col_index, time_slot in enumerate(time_slots, start=2):
+        col_letter = get_column_letter(col_index)
+        ws[f'{col_letter}2'] = time_slot
+
+    for day_index, day_name in enumerate(days):
+        ws[f"A{day_index + 3}"] = day_name
+        for slot_index, slot_content in enumerate(timetable[day_index]):
+            col_letter = get_column_letter(slot_index + 2)
+            ws[f"{col_letter}{day_index + 3}"] = slot_content
+
+    current_dir = Path(__file__).parent
+    timetables_dir = current_dir / "timetables"
+    timetables_dir.mkdir(exist_ok=True)
+    excel_path = timetables_dir / f"classroom_{prof.name}.xlsx"
+    wb.save(excel_path)
+    print("CORRECT")
+    
+    return excel_path
+
+def generate_excel_all_batches(batch_ids):
+    if not batch_ids:
+        return None
+    
+    print("WRONG")
+
+    batch = Batch.query.get(batch_ids[0])
+    if not batch:
+        return None
+
+    time_slots = [
+        "08:00 AM - 09:00 AM", "09:00 AM - 10:00 AM", "10:00 AM - 11:00 AM",
+        "11:00 AM - 12:00 PM", "12:00 PM - 01:00 PM", "01:00 PM - 02:00 PM",
+        "02:00 PM - 03:00 PM", "03:00 PM - 04:00 PM", "04:00 PM - 05:00 PM",
+        "05:00 PM - 06:00 PM"
+    ]
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+
+    timetable = [["" for _ in range(10)] for _ in range(5)]
+    
+    # Set lunch break for all days at slot 4 (12:00 PM - 1:00 PM)
+    # for day in range(5):
+    timetable[0][5] = "Lunch"
+    timetable[1][5] = "Lunch"
+    timetable[2][5] = "Lunch"
+    timetable[3][5] = "Lunch"
+    timetable[4][5] = "Lunch"
+    schedules = Schedule.query.filter_by(batch_id=batch.id).all()
+
+    for schedule in schedules:
+        if schedule.slot == 5:  # Skip lunch slot
+            continue
+        course = Course.query.get(schedule.course_id)
+        professor = Professor.query.get(schedule.professor_id)
+        classroom = Classroom.query.get(schedule.classroom_id)
+        lab = Lab.query.get(schedule.lab_id)
+        
+        entry = f"{course.name} ({professor.name})"
+        if lab:
+            entry += f" [{lab.name}]"
+        if classroom:
+            entry += f" {{{classroom.name}}}"
+            
+        timetable[schedule.day][schedule.slot] = entry
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"TimeTable"
+
+    ws['A1'] = f"Timetable for Batch: {batch.name}"
+    ws['A1'].font = Font(size=14, bold=True)
+    ws.merge_cells('A1:J1')
+
+    ws['A2'] = "Day"
+    for col_index, time_slot in enumerate(time_slots, start=2):
+        col_letter = get_column_letter(col_index)
+        ws[f'{col_letter}2'] = time_slot
+
+    for day_index, day_name in enumerate(days):
+        ws[f"A{day_index + 3}"] = day_name
+        for slot_index, slot_content in enumerate(timetable[day_index]):
+            col_letter = get_column_letter(slot_index + 2)
+            ws[f"{col_letter}{day_index + 3}"] = slot_content
+
+    current_dir = Path(__file__).parent
+    timetables_dir = current_dir / "timetables"
+    timetables_dir.mkdir(exist_ok=True)
+    excel_path = timetables_dir / f"{batch.name}.xlsx"
+    wb.save(excel_path)
+    
+    return excel_path
+
+def generate_excel_all_professors(prof_id):
+    if not prof_id:
+        return None
+
+    prof = Professor.query.get(prof_id)
+    if not prof:
+        return None
+
+    time_slots = [
+        "08:00 AM - 09:00 AM", "09:00 AM - 10:00 AM", "10:00 AM - 11:00 AM",
+        "11:00 AM - 12:00 PM", "12:00 PM - 01:00 PM", "01:00 PM - 02:00 PM",
+        "02:00 PM - 03:00 PM", "03:00 PM - 04:00 PM", "04:00 PM - 05:00 PM",
+        "05:00 PM - 06:00 PM"
+    ]
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+
+    timetable = [["" for _ in range(10)] for _ in range(5)]
+    
+    # Set lunch break for all days at slot 4 (12:00 PM - 1:00 PM)
+    # for day in range(5):
+    timetable[0][5] = "Lunch"
+    timetable[1][5] = "Lunch"
+    timetable[2][5] = "Lunch"
+    timetable[3][5] = "Lunch"
+    timetable[4][5] = "Lunch"
+    schedules = Schedule.query.filter_by(professor_id=prof.id).all()
+
+    for schedule in schedules:
+        if schedule.slot == 5:  # Skip lunch slot
+            continue
+        course = Course.query.get(schedule.course_id)
+        professor = Professor.query.get(schedule.professor_id)
+        classroom = Classroom.query.get(schedule.classroom_id)
+        lab = Lab.query.get(schedule.lab_id)
+        
+        entry = f"{course.name} ({professor.name})"
+        if lab:
+            entry += f" [{lab.name}]"
+        if classroom:
+            entry += f" {{{classroom.name}}}"
+            
+        timetable[schedule.day][schedule.slot] = entry
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"TimeTable"
+
+    ws['A1'] = f"Timetable for Professor: {prof.name}"
+    ws['A1'].font = Font(size=14, bold=True)
+    ws.merge_cells('A1:J1')
+
+    ws['A2'] = "Day"
+    for col_index, time_slot in enumerate(time_slots, start=2):
+        col_letter = get_column_letter(col_index)
+        ws[f'{col_letter}2'] = time_slot
+
+    for day_index, day_name in enumerate(days):
+        ws[f"A{day_index + 3}"] = day_name
+        for slot_index, slot_content in enumerate(timetable[day_index]):
+            col_letter = get_column_letter(slot_index + 2)
+            ws[f"{col_letter}{day_index + 3}"] = slot_content
+
+    current_dir = Path(__file__).parent
+    timetables_dir = current_dir / "timetables"
+    timetables_dir.mkdir(exist_ok=True)
+    excel_path = timetables_dir / f"{prof.name}.xlsx"
+    wb.save(excel_path)
+    print("CORRECT")
+    
+    return excel_path
+
+def generate_excel_all_classrooms(prof_id):
+    if not prof_id:
+        return None
+
+    prof = Classroom.query.get(prof_id)
+    if not prof:
+        return None
+
+    time_slots = [
+        "08:00 AM - 09:00 AM", "09:00 AM - 10:00 AM", "10:00 AM - 11:00 AM",
+        "11:00 AM - 12:00 PM", "12:00 PM - 01:00 PM", "01:00 PM - 02:00 PM",
+        "02:00 PM - 03:00 PM", "03:00 PM - 04:00 PM", "04:00 PM - 05:00 PM",
+        "05:00 PM - 06:00 PM"
+    ]
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+
+    timetable = [["" for _ in range(10)] for _ in range(5)]
+    
+    # Set lunch break for all days at slot 4 (12:00 PM - 1:00 PM)
+    # for day in range(5):
+    timetable[0][5] = "Lunch"
+    timetable[1][5] = "Lunch"
+    timetable[2][5] = "Lunch"
+    timetable[3][5] = "Lunch"
+    timetable[4][5] = "Lunch"
+    schedules = Schedule.query.filter_by(classroom_id=prof.id).all()
+
+    for schedule in schedules:
+        if schedule.slot == 5:  # Skip lunch slot
+            continue
+        course = Course.query.get(schedule.course_id)
+        professor = Professor.query.get(schedule.professor_id)
+        classroom = Classroom.query.get(schedule.classroom_id)
+        lab = Lab.query.get(schedule.lab_id)
+        
+        entry = f"{course.name} ({professor.name})"
+        if lab:
+            entry += f" [{lab.name}]"
+        if classroom:
+            entry += f" {{{classroom.name}}}"
+            
+        timetable[schedule.day][schedule.slot] = entry
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"TimeTable"
+
+    ws['A1'] = f"Timetable for Classroom: {prof.name}"
+    ws['A1'].font = Font(size=14, bold=True)
+    ws.merge_cells('A1:J1')
+
+    ws['A2'] = "Day"
+    for col_index, time_slot in enumerate(time_slots, start=2):
+        col_letter = get_column_letter(col_index)
+        ws[f'{col_letter}2'] = time_slot
+
+    for day_index, day_name in enumerate(days):
+        ws[f"A{day_index + 3}"] = day_name
+        for slot_index, slot_content in enumerate(timetable[day_index]):
+            col_letter = get_column_letter(slot_index + 2)
+            ws[f"{col_letter}{day_index + 3}"] = slot_content
+
+    current_dir = Path(__file__).parent
+    timetables_dir = current_dir / "timetables"
+    timetables_dir.mkdir(exist_ok=True)
+    excel_path = timetables_dir / f"{prof.name}.xlsx"
+    wb.save(excel_path)
+    print("CORRECT")
+    
+    return excel_path
+
+def generate_excel_all_labs(prof_id):
+    if not prof_id:
+        return None
+
+    prof = Lab.query.get(prof_id)
+    if not prof:
+        return None
+
+    time_slots = [
+        "08:00 AM - 09:00 AM", "09:00 AM - 10:00 AM", "10:00 AM - 11:00 AM",
+        "11:00 AM - 12:00 PM", "12:00 PM - 01:00 PM", "01:00 PM - 02:00 PM",
+        "02:00 PM - 03:00 PM", "03:00 PM - 04:00 PM", "04:00 PM - 05:00 PM",
+        "05:00 PM - 06:00 PM"
+    ]
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+
+    timetable = [["" for _ in range(10)] for _ in range(5)]
+    
+    # Set lunch break for all days at slot 4 (12:00 PM - 1:00 PM)
+    # for day in range(5):
+    timetable[0][5] = "Lunch"
+    timetable[1][5] = "Lunch"
+    timetable[2][5] = "Lunch"
+    timetable[3][5] = "Lunch"
+    timetable[4][5] = "Lunch"
+    schedules = Schedule.query.filter_by(lab_id=prof.id).all()
+
+    for schedule in schedules:
+        if schedule.slot == 5:  # Skip lunch slot
+            continue
+        course = Course.query.get(schedule.course_id)
+        professor = Professor.query.get(schedule.professor_id)
+        classroom = Classroom.query.get(schedule.classroom_id)
+        lab = Lab.query.get(schedule.lab_id)
+        
+        entry = f"{course.name} ({professor.name})"
+        if lab:
+            entry += f" [{lab.name}]"
+        if classroom:
+            entry += f" {{{classroom.name}}}"
+            
+        timetable[schedule.day][schedule.slot] = entry
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"TimeTable"
+
+    ws['A1'] = f"Timetable for Lab: {prof.name}"
+    ws['A1'].font = Font(size=14, bold=True)
+    ws.merge_cells('A1:J1')
+
+    ws['A2'] = "Day"
+    for col_index, time_slot in enumerate(time_slots, start=2):
+        col_letter = get_column_letter(col_index)
+        ws[f'{col_letter}2'] = time_slot
+
+    for day_index, day_name in enumerate(days):
+        ws[f"A{day_index + 3}"] = day_name
+        for slot_index, slot_content in enumerate(timetable[day_index]):
+            col_letter = get_column_letter(slot_index + 2)
+            ws[f"{col_letter}{day_index + 3}"] = slot_content
+
+    current_dir = Path(__file__).parent
+    timetables_dir = current_dir / "timetables"
+    timetables_dir.mkdir(exist_ok=True)
+    excel_path = timetables_dir / f"{prof.name}.xlsx"
+    wb.save(excel_path)
+    print("CORRECT")
+    
+    return excel_path
 # Routes
 @app.route('/')
 def index():
@@ -354,28 +860,199 @@ def select_batches():
     batches = Batch.query.all()
     return render_template('select_batches.html', batches=batches)
 
-@app.route('/download-timetable', methods=['POST'])
-def download_timetable():
-    selected_batch_ids = request.form.getlist('batch_ids[]')
-    if not selected_batch_ids:
+@app.route('/download-timetable/<int:batch_id>', methods=['POST','GET'])
+def download_timetable(batch_id):
+    print("WRONG")
+    if not batch_id:
         flash('No batches selected', 'error')
         return redirect(url_for('index'))
-
+    batch = Batch.query.filter_by(id=batch_id).first()
     zip_buffer = BytesIO()
     with ZipFile(zip_buffer, 'w') as zip_file:
-        for batch_id in selected_batch_ids:
-            excel_path = generate_excel([int(batch_id)])
-            if excel_path and os.path.exists(excel_path):
-                zip_file.write(excel_path, os.path.basename(excel_path))
-                os.remove(excel_path)
+        # for batch_id in selected_batch_ids:
+        excel_path = generate_excel([int(batch_id)])
+        if excel_path and os.path.exists(excel_path):
+            zip_file.write(excel_path, os.path.basename(excel_path))
+            os.remove(excel_path)
 
     zip_buffer.seek(0)
     return send_file(
         zip_buffer,
         mimetype='application/zip',
         as_attachment=True,
-        download_name='timetables.zip'
+        download_name=f'Batch_{batch.name}.zip'
     )
+
+@app.route('/download-timetable-classroom/<int:prof_id>', methods=['POST','GET'])
+def download_timetable_classroom(prof_id):
+    print("CORRECT")
+    if not prof_id:
+        flash('No batches selected', 'error')
+        return redirect(url_for('index'))
+    
+    batch=Classroom.query.filter_by(id=prof_id).first()
+    zip_buffer = BytesIO()
+    with ZipFile(zip_buffer, 'w') as zip_file:
+        # for batch_id in selected_batch_ids:
+        excel_path = generate_excel_classroom([int(prof_id)])
+        if excel_path and os.path.exists(excel_path):
+            zip_file.write(excel_path, os.path.basename(excel_path))
+            os.remove(excel_path)
+
+    zip_buffer.seek(0)
+    return send_file(
+        zip_buffer,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=f'Classroom_{batch.name}.zip'
+    )
+
+@app.route('/download-timetable-lab/<int:prof_id>', methods=['POST','GET'])
+def download_timetable_lab(prof_id):
+    print("CORRECT")
+    if not prof_id:
+        flash('No batches selected', 'error')
+        return redirect(url_for('index'))
+    batch=Lab.query.filter_by(id=prof_id).first()
+    zip_buffer = BytesIO()
+    with ZipFile(zip_buffer, 'w') as zip_file:
+        # for batch_id in selected_batch_ids:
+        excel_path = generate_excel_lab([int(prof_id)])
+        if excel_path and os.path.exists(excel_path):
+            zip_file.write(excel_path, os.path.basename(excel_path))
+            os.remove(excel_path)
+
+    zip_buffer.seek(0)
+    return send_file(
+        zip_buffer,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=f'Lab_{batch.name}.zip'
+    )
+
+@app.route('/download-timetable-professor/<int:prof_id>', methods=['POST','GET'])
+def download_timetable_professor(prof_id):
+    print("CORRECT")
+    if not prof_id:
+        flash('No batches selected', 'error')
+        return redirect(url_for('index'))
+    batch=Professor.query.filter_by(id=prof_id).first()
+    zip_buffer = BytesIO()
+    with ZipFile(zip_buffer, 'w') as zip_file:
+        # for batch_id in selected_batch_ids:
+        excel_path = generate_excel_professor([int(prof_id)])
+        if excel_path and os.path.exists(excel_path):
+            zip_file.write(excel_path, os.path.basename(excel_path))
+            os.remove(excel_path)
+
+    zip_buffer.seek(0)
+    return send_file(
+        zip_buffer,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=f'Professor_{batch.name}.zip'
+    )
+
+@app.route('/download-timetable-all-batches', methods=['POST','GET'])
+def download_timetable_all_batches():
+    batches=Batch.query.all()
+    zip_buffer = BytesIO()
+    with ZipFile(zip_buffer, 'w') as zip_file:
+        for batch in batches:
+            # Generate Excel file for each batch
+            excel_path = generate_excel_all_batches([batch.id])
+            
+            # If the Excel file was created, add it to the ZIP
+            if excel_path and os.path.exists(excel_path):
+                zip_file.write(excel_path, os.path.basename(excel_path))
+                os.remove(excel_path)  # cleanup temporary file
+
+    # Reset buffer position to start
+    zip_buffer.seek(0)
+
+    # Send ZIP file as a download
+    return send_file(
+        zip_buffer,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name='timetables_all_batches.zip'
+    )
+
+@app.route('/download-timetable-all-professors', methods=['POST','GET'])
+def download_timetable_all_professors():
+    batches=Professor.query.all()
+    zip_buffer = BytesIO()
+    with ZipFile(zip_buffer, 'w') as zip_file:
+        for batch in batches:
+            # Generate Excel file for each batch
+            excel_path = generate_excel_all_professors([batch.id])
+            
+            # If the Excel file was created, add it to the ZIP
+            if excel_path and os.path.exists(excel_path):
+                zip_file.write(excel_path, os.path.basename(excel_path))
+                os.remove(excel_path)  # cleanup temporary file
+
+    # Reset buffer position to start
+    zip_buffer.seek(0)
+
+    # Send ZIP file as a download
+    return send_file(
+        zip_buffer,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name='timetables_all_professors.zip'
+    )
+
+@app.route('/download-timetable-all-classrooms', methods=['POST','GET'])
+def download_timetable_all_classrooms():
+    batches=Classroom.query.all()
+    zip_buffer = BytesIO()
+    with ZipFile(zip_buffer, 'w') as zip_file:
+        for batch in batches:
+            # Generate Excel file for each batch
+            excel_path = generate_excel_all_classrooms([batch.id])
+            
+            # If the Excel file was created, add it to the ZIP
+            if excel_path and os.path.exists(excel_path):
+                zip_file.write(excel_path, os.path.basename(excel_path))
+                os.remove(excel_path)  # cleanup temporary file
+
+    # Reset buffer position to start
+    zip_buffer.seek(0)
+
+    # Send ZIP file as a download
+    return send_file(
+        zip_buffer,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name='timetables_all_classrooms.zip'
+    )
+
+@app.route('/download-timetable-all-labs', methods=['POST','GET'])
+def download_timetable_all_labs():
+    batches=Lab.query.all()
+    zip_buffer = BytesIO()
+    with ZipFile(zip_buffer, 'w') as zip_file:
+        for batch in batches:
+            # Generate Excel file for each batch
+            excel_path = generate_excel_all_labs([batch.id])
+            
+            # If the Excel file was created, add it to the ZIP
+            if excel_path and os.path.exists(excel_path):
+                zip_file.write(excel_path, os.path.basename(excel_path))
+                os.remove(excel_path)  # cleanup temporary file
+
+    # Reset buffer position to start
+    zip_buffer.seek(0)
+
+    # Send ZIP file as a download
+    return send_file(
+        zip_buffer,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name='timetables_all_labs.zip'
+    )
+
 
 @app.route('/create_batch', methods=['GET', 'POST'])
 def create_batch():
@@ -2354,10 +3031,6 @@ def specific_batch_timetable(id):
     flash("HELLO")
     schedules = Schedule.query.filter_by(batch_id=id).all()
     timetable = [["-" for _ in range(10)] for _ in range(5)]
-    
-    # Set lunch break for all days at slot 4 (12:00 PM - 1:00 PM)
-    # for day in range(5):
-    #timetable[2][4] = "Lunch"
 
     print(len(schedules))
     for schedule in schedules:
@@ -2373,11 +3046,10 @@ def specific_batch_timetable(id):
             entry += f" {classroom.name}"
         # Assign the constructed entry to the timetable
         timetable[schedule.day][schedule.slot] = entry
-    return render_template('show_timetable_batch.html', timetable=timetable)
+    return render_template('show_timetable_batch.html', timetable=timetable,id=id)
 
 @app.route('/specific_professor_timetable/<int:id>', methods=['GET'])
 def specific_professor_timetable(id):
-    flash("HELLO")
     schedules = Schedule.query.filter_by(professor_id=id).all()
     timetable = [["-" for _ in range(10)] for _ in range(5)]
 
@@ -2396,7 +3068,7 @@ def specific_professor_timetable(id):
             entry += f" {classroom.name}"
         # Assign the constructed entry to the timetable
         timetable[schedule.day][schedule.slot] = entry
-    return render_template('show_timetable_professor.html', timetable=timetable)
+    return render_template('show_timetable_professor.html', timetable=timetable,id=id)
 
 @app.route('/specific_classroom_timetable/<int:id>', methods=['GET'])
 def specific_classroom_timetable(id):
@@ -2419,7 +3091,7 @@ def specific_classroom_timetable(id):
             entry += f" {classroom.name}"
         # Assign the constructed entry to the timetable
         timetable[schedule.day][schedule.slot] = entry
-    return render_template('show_timetable_classroom.html', timetable=timetable)
+    return render_template('show_timetable_classroom.html', timetable=timetable,id=id)
 
 @app.route('/specific_lab_timetable/<int:id>', methods=['GET'])
 def specific_lab_timetable(id):
@@ -2438,7 +3110,7 @@ def specific_lab_timetable(id):
         entry = f"{course.name}({batch.name}-{professor.name})"
         # Assign the constructed entry to the timetable
         timetable[schedule.day][schedule.slot] = entry
-    return render_template('show_timetable_lab.html', timetable=timetable)
+    return render_template('show_timetable_lab.html', timetable=timetable,id=id)
 
 if __name__ == '__main__':
     with app.app_context():
