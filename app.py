@@ -177,7 +177,7 @@ def is_slot_available(course, day, slot, building_id,batch):
     if(building_id==-1):
         classrooms=Classroom.query.all()
     else :
-        classrooms=Classroom.query.filter_by(building_id=building_id)
+        classrooms=Classroom.query.filter_by(building_id=building_id).all()
 
     for classroom in classrooms:
         if batch.capacity > classroom.capacity:
@@ -191,7 +191,7 @@ def is_slot_available(course, day, slot, building_id,batch):
     return False
 
 def is_slot_available_lab_priority1(course, day, slot,batch, is_lab=False):
-    # batch = Batch.query.filter(Batch.id == course.batch_id).first()
+    batch = Batch.query.filter(Batch.id == course.batch_id).first()
     lab=Lab.query.filter_by(id=course.lab_id1).first()
     if not lab:
         return False
@@ -219,6 +219,7 @@ def is_slot_available_lab_priority1(course, day, slot,batch, is_lab=False):
     return not (existing_schedule or professor_schedule or lab_schedule or existing_schedule2 or professor_schedule2 or lab_schedule2)
 
 def is_slot_available_lab_priority2(course, day, slot,batch, is_lab=False):
+    batch = Batch.query.filter(Batch.id == course.batch_id).first()
     lab=Lab.query.filter_by(id=course.lab_id2).first()
     if not lab:
         return False
@@ -246,6 +247,7 @@ def is_slot_available_lab_priority2(course, day, slot,batch, is_lab=False):
     return not (existing_schedule or professor_schedule or lab_schedule or existing_schedule2 or professor_schedule2 or lab_schedule2)
 
 def is_slot_available_lab_priority3(course, day, slot,batch, is_lab=False):
+    batch = Batch.query.filter(Batch.id == course.batch_id).first()
     lab=Lab.query.filter_by(id=course.lab_id3).first()
     if not lab:
         return False
@@ -273,6 +275,7 @@ def is_slot_available_lab_priority3(course, day, slot,batch, is_lab=False):
     return not (existing_schedule2 or professor_schedule2 or lab_schedule2 or existing_schedule or professor_schedule or lab_schedule)
 
 def is_slot_available_lab(course, day, slot, is_lab=False):
+    batch = Batch.query.filter(Batch.id == course.batch_id).first()
     existing_schedule = Schedule.query.filter_by(
         batch_id=course.batch_id, day=day, slot=slot
     ).first()
