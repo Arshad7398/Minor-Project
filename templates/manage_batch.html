@@ -325,12 +325,12 @@
                 </div>
                 
                 <div class="checkbox-group">
-                    <input type="checkbox" id="priorityCheckboxday" name="priority_day" onchange="togglePriorityTypeday()">
+                    <input type="checkbox" id="priorityCheckboxday" name="priority_day" onchange="handlePrioritySelection(this)">
                     <label for="priorityCheckboxday">Priority Day</label>
                 </div>
-                
+
                 <div class="checkbox-group">
-                    <input type="checkbox" id="priorityCheckboxid" name="priority_day_type" onchange="togglePriorityTypeid()">
+                    <input type="checkbox" id="priorityCheckboxid" name="priority_day_type" onchange="handlePrioritySelection(this)">
                     <label for="priorityCheckboxid">Priority Evening</label>
                 </div>
             </div>
@@ -446,6 +446,20 @@
             const priorityTypeDiv = document.getElementById("priority_day_type");
             priorityTypeDiv.style.display = priorityCheckbox.checked ? "block" : "none";
         }
+
+        function handlePrioritySelection(clickedCheckbox) {
+    const dayCheckbox = document.getElementById("priorityCheckboxday");
+    const eveningCheckbox = document.getElementById("priorityCheckboxid");
+
+    // If the clicked one is checked, uncheck the other
+    if (clickedCheckbox.checked) {
+        if (clickedCheckbox === dayCheckbox) {
+            eveningCheckbox.checked = false;
+        } else {
+            dayCheckbox.checked = false;
+        }
+    }
+}
     </script>
 </body>
 </html>

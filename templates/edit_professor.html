@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Professor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px 40px;
+        }
+
+        .card h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #444;
+        }
+
+        input[type="text"], input[type="email"], select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            border-color: #007bff;
+        }
+
+        .btn-group {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 15px;
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        i {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h2><i class="fas fa-edit"></i> Edit Professor</h2>
+
+        <form method="POST" enctype="multipart/form-data">
+
+            <!-- Professor Name -->
+            <div class="form-group">
+                <label for="professor_name">Name</label>
+                <input type="text" id="professor_name" name="name"
+                       value="{{ professor.name }}"
+                       placeholder="Enter Professor Name" required>
+            </div>
+
+            <!-- Optional Email Field -->
+            <!--
+            <div class="form-group">
+                <label for="professor_email">Email</label>
+                <input type="email" id="professor_email" name="email"
+                       value="{{ professor.email }}"
+                       placeholder="Enter Email">
+            </div>
+            -->
+
+            <!-- Classroom 1 -->
+            <div class="form-group">
+                <label>Classroom 1</label>
+                <select name="professor_id1" required>
+                    <option value="">-- Select Classroom --</option>
+                    {% for room in classrooms %}
+                    <option value="{{ room.id }}"
+                        {% if professor.priority_classroom_1|int == room.id|int %}selected{% endif %}>
+                        {{ room.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Classroom 2 -->
+            <div class="form-group">
+                <label>Classroom 2</label>
+                <select name="professor_id2" required>
+                    <option value="">-- Select Classroom --</option>
+                    {% for room in classrooms %}
+                    <option value="{{ room.id }}"
+                        {% if professor.priority_classroom_2|int == room.id|int %}selected{% endif %}>
+                        {{ room.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Classroom 3 -->
+            <div class="form-group">
+                <label>Classroom 3</label>
+                <select name="professor_id3" required>
+                    <option value="">-- Select Classroom --</option>
+                    {% for room in classrooms %}
+                    <option value="{{ room.id }}"
+                        {% if professor.priority_classroom_3|int == room.id|int %}selected{% endif %}>
+                        {{ room.name }}
+                    </option>
+
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="btn-group">
+                <button type="submit" class="btn">
+                    <i class="fas fa-save"></i> Update Professor Details
+                </button>
+            </div>
+        </form>
+
+        <a href="{{ url_for('manage_professors') }}" class="back-link">
+            <i class="fas fa-arrow-left"></i> Back to Professor List
+        </a>
+    </div>
+</div>
+
+</body>
+</html>

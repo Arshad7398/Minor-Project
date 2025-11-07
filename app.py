@@ -991,6 +991,28 @@ def download_timetable_all_batches():
         download_name='timetables_all_batches.zip'
     )
 
+@app.route('/classroom_type/delete/<int:id>', methods=['POST'])
+def delete_classroom_type(id):
+    building = Building.query.get_or_404(id)
+    classroom = Classroom.query.filter_by(building_id=id).all()
+    for clas in classroom:
+        db.session.delete(clas)
+        db.session.commit()
+    db.session.delete(building)
+    db.session.commit()
+    flash('building deleted successfully', 'danger')
+    return redirect(url_for('manage_classrooms_type'))
+
+@app.route('/classroom_type/edit/<int:id>', methods=['GET', 'POST'])
+def edit_classroom_type(id):
+    building = Building.query.get_or_404(id)
+    if request.method == 'POST':
+        building.name = request.form['name']
+        db.session.commit()
+        flash('Course updated successfully', 'success')
+        return redirect(url_for('manage_classrooms_type'))
+    return render_template('edit_classroom_type.html', building=building)
+
 @app.route('/download-timetable-all-professors', methods=['POST','GET'])
 def download_timetable_all_professors():
     batches=Professor.query.all()
@@ -1436,7 +1458,11 @@ def manage_labs():
 @app.route('/delete_batch/<int:id>', methods=['POST', 'GET'])
 def delete_batch(id):
     batch = Batch.query.get_or_404(id)   # Find batch by ID or show 404
+    courses= Course.query.filter_by(batch_id=id).all()
     try:
+        for course in courses:
+            db.session.delete(course)
+            db.session.commit()
         db.session.delete(batch)         # Delete the batch
         db.session.commit()              # Save changes
         flash(f'Batch "{batch.name}" deleted successfully.', 'success')
@@ -1516,32 +1542,44 @@ def edit_course(course_id):
     labs = Lab.query.all()
 
     if request.method == 'POST':
-        course.priority_shift='priority_shift' in request.form
-        #priority_shift_type=request.form.get('priority_shift_type')
-        course.priority_day='priority_day' in request.form
-        #priority_day_type=request.form.get('priority_day_type')
-        lab_classroom_id = request.form.get('lab_classroom_id')
-        if course.is_lab:
-            course.lab_id = int(lab_classroom_id) if lab_classroom_id else None
-        else:
-            course.lab_id = None
-        #course.lab_id = request.form.get('lab_classroom_id') if lab_classroom_id else None
-        # Update fields from form
         course.name = request.form['course_name']
-        course.credits = int(request.form['credits'])
-        course.professor_id = int(request.form['professor_id'])
+        course.credits = request.form['credits']
+        course.professor_id = request.form['professor_id']
+        course.lab_professor_id = request.form.get('professor_id_lab')
+        course.lab_id1 = request.form.get('lab_classroom_id1')
+        course.lab_id2 = request.form.get('lab_classroom_id2')
+        course.lab_id3 = request.form.get('lab_classroom_id3')
         course.is_lab = 'is_lab' in request.form
-        course.priority = 'priority' in request.form
-        dd=request.form.get('avoid_day')
-        if(dd):
-            course.avoid_day = int(dd)
+        course.priority = 'is_priority' in request.form
+        course.priority_morning = 'priority_day' in request.form
+        course.priority_evening = 'priority_day_type' in request.form
+        course.avoid_day = request.form.get('avoid_day') or None
+        # course.priority_shift='priority_shift' in request.form
+        # #priority_shift_type=request.form.get('priority_shift_type')
+        # course.priority_day='priority_day' in request.form
+        # #priority_day_type=request.form.get('priority_day_type')
+        # lab_classroom_id = request.form.get('lab_classroom_id')
+        # if course.is_lab:
+        #     course.lab_id = int(lab_classroom_id) if lab_classroom_id else None
+        # else:
+        #     course.lab_id = None
+        # #course.lab_id = request.form.get('lab_classroom_id') if lab_classroom_id else None
+        # # Update fields from form
+        # course.name = request.form['course_name']
+        # course.credits = int(request.form['credits'])
+        # course.professor_id = int(request.form['professor_id'])
+        # course.is_lab = 'is_lab' in request.form
+        # course.priority = 'priority' in request.form
+        # dd=request.form.get('avoid_day')
+        # if(dd):
+        #     course.avoid_day = int(dd)
 
-        # Only set lab_classroom_id if course is lab
-        if course.is_lab:
-            lab_classroom_id = request.form.get('lab_classroom_id')
-            course.lab_id = int(lab_classroom_id) if lab_classroom_id else None
-        else:
-            course.lab_id = None
+        # # Only set lab_classroom_id if course is lab
+        # if course.is_lab:
+        #     lab_classroom_id = request.form.get('lab_classroom_id')
+        #     course.lab_id = int(lab_classroom_id) if lab_classroom_id else None
+        # else:
+        #     course.lab_id = None
 
         try:
             db.session.commit()
@@ -1574,6 +1612,23 @@ def delete_course(course_id):
 def professor_timetale():
     professors = Professor.query.all()
     return render_template('timetable_professor.html',professors=professors)
+
+@app.route('/edit_professor/<int:id>', methods=['GET', 'POST'])
+def edit_professor(id):
+    professor = Professor.query.get_or_404(id)
+    classrooms = Building.query.all()  # to populate dropdowns
+
+    if request.method == 'POST':
+        professor.name = request.form['name']
+        professor.priority_classroom_1 = request.form['professor_id1']
+        professor.priority_classroom_2 = request.form['professor_id2']
+        professor.priority_classroom_3 = request.form['professor_id3']
+        db.session.commit()
+        flash('Professor updated successfully!', 'success')
+        return redirect(url_for('manage_professors'))
+
+    return render_template('edit_professor.html', professor=professor, classrooms=classrooms)
+
 
 @app.route('/batch_timetable',methods=['GET'])
 def batches_timetale():
