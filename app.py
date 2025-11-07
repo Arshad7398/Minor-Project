@@ -147,6 +147,8 @@ def find_available_classroom_onehour(day,slot,batch):
 
 def find_available_lab(day, slot,id,batch):
     all_labs=[]
+    if not batch:
+        return False
     if id==-1:
         all_labs = Lab.query.all()
     else:
@@ -165,6 +167,8 @@ def find_available_lab(day, slot,id,batch):
     return None
 
 def is_slot_available(course, day, slot, building_id,batch):
+    if not batch:
+        return False
     existing_schedule = Schedule.query.filter_by(
         batch_id=course["batch_id"], day=day, slot=slot
     ).first()
@@ -195,6 +199,8 @@ def is_slot_available_lab_priority1(course, day, slot,batch, is_lab=False):
     lab=Lab.query.filter_by(id=course.lab_id1).first()
     if not lab:
         return False
+    if not batch:
+        return False
     if batch.capacity>lab.capacity:
         return False
     existing_schedule = Schedule.query.filter_by(
@@ -223,6 +229,8 @@ def is_slot_available_lab_priority2(course, day, slot,batch, is_lab=False):
     lab=Lab.query.filter_by(id=course.lab_id2).first()
     if not lab:
         return False
+    if not batch:
+        return False
     if batch.capacity>lab.capacity:
         return False
     existing_schedule = Schedule.query.filter_by(
@@ -250,6 +258,8 @@ def is_slot_available_lab_priority3(course, day, slot,batch, is_lab=False):
     batch = Batch.query.filter(Batch.id == course.batch_id).first()
     lab=Lab.query.filter_by(id=course.lab_id3).first()
     if not lab:
+        return False
+    if not batch:
         return False
     if batch.capacity>lab.capacity:
         return False
