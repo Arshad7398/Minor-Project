@@ -333,6 +333,16 @@
                     <input type="checkbox" id="priorityCheckboxid" name="priority_day_type" onchange="handlePrioritySelection(this)">
                     <label for="priorityCheckboxid">Priority Evening</label>
                 </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="priorityCheckboxday" name="priority_lab_day" onclick="toggleCheckbox(this)">
+                    <label for="priorityCheckboxday">Lab in Day</label>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="priorityCheckboxid" name="priority_lab_evening" onclick="toggleCheckbox(this)">
+                    <label for="priorityCheckboxid">Lab in Evening</label>
+                </div>
             </div>
             
             <!-- change  -->
@@ -433,6 +443,15 @@
             const priorityCheckbox = document.getElementById("priorityCheckbox");
             const priorityTypeDiv = document.getElementById("priorityType");
             priorityTypeDiv.style.display = priorityCheckbox.checked ? "block" : "none";
+        }
+
+        function toggleCheckbox(clickedCheckbox) {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"][name^="priority_lab_"]');
+            checkboxes.forEach(checkbox => {
+                if (checkbox !== clickedCheckbox) {
+                    checkbox.checked = false;
+                }
+            });
         }
         
         function togglePriorityTypeid() {
