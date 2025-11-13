@@ -252,6 +252,7 @@
     </style>
 </head>
 <body>
+    {% include "_toast.html" %}
     <div class="container">
         <h1><i class="fas fa-chalkboard-teacher"></i> Manage Professors</h1>
         
@@ -265,6 +266,8 @@
                     <label for="professor_name">Name</label>
                     <input type="text" id="professor_name" name="name" placeholder="Enter Professor name" required>
                 </div>
+
+                
                 
                 <!-- <div class="form-group">
                     <label for="professor_email">Email</label>
@@ -273,7 +276,7 @@
 
                  <div class="form-group">
                     <label>Classrooms</label>
-                    <select name="professor_id1" required>
+                    <select name="professor_id1" >
                         <option value="">-- Select Professor --</option>
                         {% for prof in classrooms %}
                         <option value="{{ prof.id }}">{{ prof.name }}</option>
@@ -283,7 +286,7 @@
 
                 <div class="form-group">
                     <label>Classrooms</label>
-                    <select name="professor_id2" required>
+                    <select name="professor_id2" >
                         <option value="">-- Select Professor --</option>
                         {% for prof in classrooms %}
                         <option value="{{ prof.id }}">{{ prof.name }}</option>
@@ -293,7 +296,7 @@
 
                 <div class="form-group">
                     <label>Classrooms</label>
-                    <select name="professor_id3" required>
+                    <select name="professor_id3" >
                         <option value="">-- Select Professor --</option>
                         {% for prof in classrooms %}
                         <option value="{{ prof.id }}">{{ prof.name }}</option>
@@ -355,7 +358,7 @@
                     <tr>
                         <td>{{ professor.name }}</td>
                         <td>
-                            <form action="{{ url_for('delete_professor', id=professor.id) }}" method="post" style="display:inline;">
+                            <form action="{{ url_for('delete_professor', id=professor.id,department_id=department_id) }}" method="post" style="display:inline;">
                                 <button type="submit" onclick="return confirm('Are you sure you want to delete {{ professor.name }}?');">
                                 Delete
                                 </button>

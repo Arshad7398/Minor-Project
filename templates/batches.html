@@ -251,45 +251,45 @@
         </header>
         
         <div class="actions">
-            <a href="{{ url_for('manage_classrooms_type') }}" class="btn btn-secondary">
-                <i class="fas fa-chalkboard-teacher icon"></i> Manage Classrooms
+            <a href="{{ url_for('create_batch',department_id=department_id) }}" class="btn btn-primary">
+                <i class="fas fa-plus-circle icon"></i> Create New Batch
             </a>
-            <a href="{{ url_for('manage_labs') }}" class="btn btn-secondary">
-                <i class="fas fa-flask icon"></i> Manage Labs
-            </a>
-            <a href="{{ url_for('add_department') }}" class="btn btn-secondary">
-                <i class="fas fa-flask icon"></i> Add Departments
+            <a href="{{ url_for('manage_professors',department_id=department_id) }}" class="btn btn-secondary">
+                <i class="fas fa-flask icon"></i> Manage Professors
             </a>
         </div>
         
         <div class="card-container">
-            <h2><i class="fas fa-list-ul"></i> Existing Departments</h2>
+            <h2><i class="fas fa-list-ul"></i> Existing Batches</h2>
             
-            {% if departments %}
+            {% if batches %}
             <div class="batch-list">
-                {% for batch in departments %}
+                {% for batch in batches %}
                 <div class="batch-card">
                     <div class="batch-name">{{ batch.name }}</div>
                     <div class="batch-actions">
-                        <a href="{{ url_for('manage_department', department_id=batch.id) }}" class="batch-btn manage">
+                        <a href="{{ url_for('manage_batch', batch_id=batch.id) }}" class="batch-btn manage">
                             <i class="fas fa-cog"></i> Manage
                         </a>
+                        <a href="{{ url_for('download_timetable', batch_id=batch.id) }}" class="batch-btn download">
+                            <i class="fas fa-download"></i> Download
+                        </a>
+
+                    </div>
+                    <div>
+                        <form action="{{ url_for('delete_batch', id=batch.id) }}" method="post" style="display:inline;">
+                            <button type="submit" onclick="return confirm('Are you sure you want to delete {{ batch.name }}?');">
+                            Delete
+                            </button>
+                        </form>
                     </div>
                 </div>
                 {% endfor %}
             </div>
             {% else %}
-            <p style="text-align: center; color: #666; padding: 2rem 0;">No Departments created yet. Create your first batch to get started!</p>
+            <p style="text-align: center; color: #666; padding: 2rem 0;">No batches created yet. Create your first batch to get started!</p>
             {% endif %}
 
-            <div class="container">
-                <h1>Welcome!</h1>
-                <a href="{{ url_for('get_timetable') }}">
-                    <button class="btn">Get Timetable</button>
-                </a>
-                
-            </div>
-            
             
         </div>
     </div>

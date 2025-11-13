@@ -5,17 +5,135 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Professors</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #f9fafc;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        /* ==============================
+           Container Styling
+        ============================== */
+        .container {
+            background: #fff;
+            padding: 2rem 2.5rem;
+            margin-top: 3rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 600px;
+        }
+
+        /* ==============================
+           Heading
+        ============================== */
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.5px;
+        }
+
+        /* ==============================
+           Batch List Styling
+        ============================== */
+        .batch-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* ==============================
+           Batch Link Card
+        ============================== */
+        .batch-link {
+            display: block;
+            background: #fefefe;
+            border: 1px solid #e0e0e0;
+            padding: 14px 18px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .batch-link:hover {
+            background: #eef6ff;
+            border-color: #007bff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        /* ==============================
+           Text Emphasis
+        ============================== */
+        .batch-link strong {
+            color: #007bff;
+        }
+
+        /* ==============================
+           Back Button
+        ============================== */
+        .btn.back {
+            display: inline-block;
+            background: #007bff;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background 0.3s ease, transform 0.2s ease;
+        }
+
+        .btn.back:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        /* ==============================
+           Responsive Design
+        ============================== */
+        @media (max-width: 600px) {
+            .container {
+                width: 95%;
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .batch-link {
+                font-size: 0.95rem;
+                padding: 12px 15px;
+            }
+
+            .btn.back {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
 </head>
 <body>
+    {% include "_toast.html" %}
     <div class="container">
         <h1>👨‍🏫 Batches List</h1>
 
         <div class="batch-list">
             {% for batch in batches %}
             <a href="{{ url_for('specific_batch_timetable', id=batch.id) }}" 
-            class="batch-link" 
-            style="display: block; text-decoration: none; color: black; border: 1px solid #ccc; 
-                    padding: 10px; margin-bottom: 8px; border-radius: 8px;">
+            class="batch-link">
                 <strong>ID:</strong> {{ batch.id }}<br>
                 <strong>Name:</strong> {{ batch.name }}<br>
                 <strong>Capacity:</strong> {{ batch.capacity }}

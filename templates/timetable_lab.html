@@ -3,10 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professors</title>
+    <title>Labs</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* ==============================
+           Base Page Layout
+        ============================== */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        /* ==============================
+           Container
+        ============================== */
+        .container {
+            background: #ffffff;
+            padding: 2.5rem 3rem;
+            margin-top: 3rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 800px;
+        }
+
+        /* ==============================
+           Heading
+        ============================== */
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* ==============================
+           Table Styling
+        ============================== */
+        .prof-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .prof-table th,
+        .prof-table td {
+            border: 1px solid #ddd;
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        .prof-table th {
+            background-color: #007bff;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .prof-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .prof-table tr:hover {
+            background-color: #eef6ff;
+            transition: background 0.2s ease-in-out;
+        }
+
+        /* ==============================
+           Table Links
+        ============================== */
+        .prof-table a {
+            text-decoration: none;
+            color: #007bff;
+            font-weight: 500;
+        }
+
+        .prof-table a:hover {
+            text-decoration: underline;
+            color: #0056b3;
+        }
+
+        /* ==============================
+           Back Button
+        ============================== */
+        .btn.back {
+            display: inline-block;
+            background: #007bff;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.2s ease;
+        }
+
+        .btn.back:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        /* ==============================
+           Responsive Design
+        ============================== */
+        @media (max-width: 600px) {
+            .container {
+                width: 95%;
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            .prof-table th,
+            .prof-table td {
+                font-size: 0.9rem;
+                padding: 10px;
+            }
+
+            .btn.back {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
 </head>
 <body>
+    {% include "_toast.html" %}
     <div class="container">
         <h1>👨‍🏫 Labs List</h1>
 
@@ -15,7 +146,7 @@
                 <tr>
                     <th>ID</th>
                     <th>Name</th>
-                    <th>Department</th>
+                    <th>Capacity</th>
                 </tr>
             </thead>
             <tbody>
@@ -23,7 +154,7 @@
                 <tr>
                     <td>{{ prof.id }}</td>
                     <td>
-                        <a href="{{ url_for('specific_lab_timetable', id=prof.id) }}">
+                        <a href="{{ url_for('specific_lab_timetable', id=prof.id,sem=sem) }}">
                             {{ prof.name }}
                         </a>
                     </td>

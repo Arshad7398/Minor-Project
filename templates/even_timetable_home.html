@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Menu</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* ==============================
+           Base Layout
+        ============================== */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #e0f7fa, #f1f8e9);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* ==============================
+           Container
+        ============================== */
+        .container {
+            background: #ffffff;
+            padding: 2.5rem 3rem;
+            border-radius: 20px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 650px;
+        }
+
+        /* ==============================
+           Heading
+        ============================== */
+        h1 {
+            color: #2c3e50;
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            letter-spacing: 0.5px;
+        }
+
+        /* ==============================
+           Button Grid
+        ============================== */
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        /* ==============================
+           Buttons
+        ============================== */
+        .btn, 
+        button[type="submit"] {
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 18px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.25s ease-in-out;
+            width: 100%;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover, 
+        button[type="submit"]:hover {
+            background: #0056b3;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.15);
+        }
+
+        .btn:active, 
+        button[type="submit"]:active {
+            transform: scale(0.97);
+        }
+
+        /* ==============================
+           Submit Button
+        ============================== */
+        form {
+            margin-top: 15px;
+        }
+
+        form button {
+            width: 100%;
+            background: #28a745;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+
+        form button:hover {
+            background: #218838;
+        }
+
+        /* ==============================
+           Download Buttons Section
+        ============================== */
+        .downloads {
+            margin-top: 2rem;
+        }
+
+        .download-all {
+            margin: 10px 0;
+        }
+
+        .btn-primary {
+            background: #17a2b8;
+        }
+
+        .btn-primary:hover {
+            background: #138496;
+        }
+
+        .icon {
+            margin-right: 8px;
+        }
+
+        /* ==============================
+           Responsive Design
+        ============================== */
+        @media (max-width: 600px) {
+            .container {
+                width: 90%;
+                padding: 1.8rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .btn, button[type="submit"] {
+                font-size: 0.95rem;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include "_toast.html" %}
+    <div class="container">
+        <h1>📘 Timetable Management Portal</h1>
+
+        <div class="button-grid">
+            <a href="{{ url_for('professor_timetale', sem=sem) }}" class="btn">Professor</a>
+            <a href="{{ url_for('even_batches_timetale', sem=sem) }}" class="btn">Batches</a>
+            <a href="{{ url_for('classroom_timetale', sem=sem) }}" class="btn">Classroom</a>
+            <a href="{{ url_for('lab_timetale', sem=sem) }}" class="btn">Lab</a>
+        </div>
+
+        <form action="{{ url_for('even_timetable', sem=sem) }}" method="POST">
+            <button type="submit">Make Schedule</button>
+        </form>
+
+        <div class="downloads">
+            <div class="download-all">
+                <a href="{{ url_for('download_timetable_all_batches',sem=sem) }}" class="btn btn-primary">
+                    <i class="fas fa-file-export icon"></i> Download All Batches
+                </a>
+            </div>
+            <div class="download-all">
+                <a href="{{ url_for('download_timetable_all_professors',sem=sem) }}" class="btn btn-primary">
+                    <i class="fas fa-file-export icon"></i> Download All Professors
+                </a>
+            </div>
+            <div class="download-all">
+                <a href="{{ url_for('download_timetable_all_classrooms',sem=sem) }}" class="btn btn-primary">
+                    <i class="fas fa-file-export icon"></i> Download All Classrooms
+                </a>
+            </div>
+            <div class="download-all">
+                <a href="{{ url_for('download_timetable_all_labs',sem=sem) }}" class="btn btn-primary">
+                    <i class="fas fa-file-export icon"></i> Download All Labs
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

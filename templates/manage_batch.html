@@ -239,9 +239,67 @@
                 min-width: 100px;
             }
         }
+
+        /* --- Timetable Styling --- */
+.timetable-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2a4d9b;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.timetable-container {
+  overflow-x: auto;
+  background-color: #f9fbff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 15px;
+}
+
+.timetable-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+.timetable-table th,
+.timetable-table td {
+  border: 1px solid #d9e0f1;
+  padding: 12px 10px;
+  vertical-align: middle;
+  word-wrap: break-word;
+  max-width: 150px;
+}
+
+.timetable-table thead th {
+  background-color: #3558d4;
+  color: white;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.timetable-table tbody tr:nth-child(even) {
+  background-color: #f5f8ff;
+}
+
+.timetable-table tbody tr:hover {
+  background-color: #e9f1ff;
+}
+
+.day-column {
+  background-color: #e1e8ff;
+  font-weight: 600;
+}
     </style>
 </head>
 <body>
+    {% include "_toast.html" %}
     <div class="container">
         <h1><i class="fas fa-calendar-alt"></i> Manage Batch - {{ batch.name }}</h1>
         
@@ -264,9 +322,20 @@
                     <input type="text" id="professor_name" name="professor_name" required>
                 </div> -->
 
+                
+
                 <div class="form-group">
+
+                    <label>Department:</label>
+                    <select id="department" name="department" onchange="loadProfessors()">
+                        <option value="">-- All Departments --</option>
+                        {% for dept in departments %}
+                            <option value="{{ dept.id }}">{{ dept.name }}</option>
+                        {% endfor %}
+                    </select><br><br>
+
                     <label>Professor</label>
-                    <select name="professor_id" required>
+                    <select id="professor" name="professor_id" required>
                         <option value="">-- Select Professor --</option>
                         {% for prof in professors %}
                         <option value="{{ prof.id }}">{{ prof.name }}</option>
@@ -362,7 +431,7 @@
         </form>
         
         <!-- Timetable Section -->
-        <h2><i class="fas fa-calendar-day"></i> TimeTable</h2>
+        <!--<h2><i class="fas fa-calendar-day"></i> TimeTable</h2>
         <table>
             <thead>
                 <tr>
@@ -389,7 +458,43 @@
                     </tr>
                 {% endfor %}
             </tbody>
-        </table>
+        </table>-->
+
+        <h3 class="timetable-title">
+  <i class="fas fa-calendar-alt"></i> TimeTable
+</h3>
+
+<div class="timetable-container">
+  <table class="timetable-table">
+    <thead>
+      <tr>
+        <th>Day / Time</th>
+        {% for slot in time_slots %}
+          <th>{{ slot }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for i in range(days|length) %}
+        <tr>
+          <th class="day-column">{{ days[i] }}</th>
+          {% for cell in timetable[i] %}
+            {% if 'Lab' in cell %}
+              <td class="lab-cell">{{ cell }}</td>
+            {% else %}
+              <td class="lecture-cell">{{ cell }}</td>
+            {% endif %}
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<form action="{{ url_for('change_batch_timetable',id=batch.id) }}" method="POST">
+    <button type="submit" class="btn btn-primary">Change Schedule</button>
+</form>
+
 
         <h2><i class="fas fa-book"></i> Courses in {{ batch.name }}</h2>
 
@@ -439,6 +544,25 @@
     </div>
 
     <script>
+        function loadProfessors() {
+            const deptId = document.getElementById('department').value || 0;
+            const professorSelect = document.getElementById('professor');
+
+            // ✅ Clear existing options before adding new ones
+            professorSelect.innerHTML = '<option value="">-- Select Professor --</option>';
+
+            fetch(`/get_professors/${deptId}`)
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(prof => {
+                        const option = document.createElement('option');
+                        option.value = prof.id;
+                        option.textContent = prof.name;
+                        professorSelect.appendChild(option);
+                    });
+                })
+                .catch(err => console.error('Error fetching professors:', err));
+        }
         function togglePriorityType() {
             const priorityCheckbox = document.getElementById("priorityCheckbox");
             const priorityTypeDiv = document.getElementById("priorityType");

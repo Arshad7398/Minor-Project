@@ -1,0 +1,57 @@
+<!-- 🔔 Toast Notification System -->
+<div id="toast-container" style="
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+"></div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <script>
+      const container = document.getElementById('toast-container');
+      {% for category, message in messages %}
+        const toast = document.createElement('div');
+        toast.textContent = "{{ message }}";
+        toast.className = "toast toast-{{ category }}";
+        container.appendChild(toast);
+
+        // Fade in
+        setTimeout(() => toast.classList.add('show'), 100);
+        // Auto remove after 4 seconds
+        setTimeout(() => {
+          toast.classList.remove('show');
+          setTimeout(() => toast.remove(), 500);
+        }, 4000);
+      {% endfor %}
+    </script>
+  {% endif %}
+{% endwith %}
+
+<style>
+.toast {
+  opacity: 0;
+  padding: 12px 18px;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  transform: translateY(-10px);
+  transition: all 0.5s ease;
+  min-width: 250px;
+}
+
+/* Toast types */
+.toast-error   { background-color: #e74c3c; }  /* red */
+.toast-success { background-color: #2ecc71; }  /* green */
+.toast-warning { background-color: #f1c40f; color: #000; } /* yellow */
+
+/* Animation */
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+</style>
