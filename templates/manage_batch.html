@@ -305,7 +305,7 @@
         
         <!-- Add Course Section -->
         <h3><i class="fas fa-book"></i> Add Course</h3>
-        <form method="POST">
+        <form method="POST" onsubmit="return validateLabSelection()">
             <div class="form-row">
                 <div class="form-group">
                     <label for="course_name">Course Name</label>
@@ -315,6 +315,11 @@
                 <div class="form-group">
                     <label for="credits">Credits</label>
                     <input type="number" id="credits" name="credits" required min="1" max="6">
+                </div>
+
+                <div class="form-group">
+                    <label for="course_code">Course Code</label>
+                    <input type="text" id="course_code" name="course_code">
                 </div>
                 
                 <!-- <div class="form-group">
@@ -412,6 +417,16 @@
                     <input type="checkbox" id="priorityCheckboxid" name="priority_lab_evening" onclick="toggleCheckbox(this)">
                     <label for="priorityCheckboxid">Lab in Evening</label>
                 </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="priorityCheckboxidd" name="divide" onchange="togglePriorityType()">
+                    <label for="priorityCheckboxidd">Divide</label>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="priorityCheckboxiddd" name="tutorial" onchange="togglePriorityType()">
+                    <label for="priorityCheckboxiddd">Tutorial</label>
+                </div>
             </div>
             
             <!-- change  -->
@@ -504,6 +519,7 @@
             <th>Course Name</th>
             <th>Credits</th>
             <th>Is Lab</th>
+            <th>Is Tutorial</th>
             <th>Delete Course</th>
             <th>Edit Course</th>
             </tr>
@@ -515,6 +531,7 @@
             <td>{{ course.credits }}</td>
             
             <td>{{ 'Yes' if course.is_lab else 'No' }}</td>
+            <td>{{ 'Yes' if course.tutorial else 'No' }}</td>
             <td>
                 <form method="POST" action="{{ url_for('delete_course', course_id=course.id) }}" onsubmit="return confirm('Are you sure you want to delete this course?');">
                     <button type="submit" style="background-color: var(--danger);">Delete</button>
@@ -583,6 +600,24 @@
             const priorityTypeDiv = document.getElementById("priority_shift_type");
             priorityTypeDiv.style.display = priorityCheckbox.checked ? "block" : "none";
         }
+        function validateLabSelection() {
+    const isLab = document.getElementById('is_lab').checked;
+    const labProfessor = document.querySelector('select[name="professor_id_lab"]').value;
+
+    // Case 1: Lab checkbox checked but no professor selected
+    if (isLab && labProfessor === "") {
+        alert("Please select a Lab Professor when Lab Course is checked.");
+        return false; // block form submission
+    }
+
+    // Case 2: Professor selected but Lab checkbox not checked
+    if (!isLab && labProfessor !== "") {
+        alert("Please check 'Lab Course' when selecting a Lab Professor.");
+        return false; // block form submission
+    }
+
+    return true; // allow form submission
+}
         
         function togglePriorityTypeday() {
             const priorityCheckbox = document.getElementById("priorityCheckboxday");

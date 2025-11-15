@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Classroom Availability</title>
+
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ccc;
+        }
+        .available {
+            background: #c8f7c5;
+            color: green;
+            font-weight: bold;
+        }
+        .occupied {
+            background: #f7c5c5;
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+
+</head>
+<body>
+
+<h2>Classroom Availability for Day {{ day }}</h2>
+
+<table>
+    <tr>
+        <th>Classroom</th>
+        {% for slot in slots %}
+            <th>{{ slot_names[slot] }}</th>
+        {% endfor %}
+    </tr>
+
+    {% for room in classrooms %}
+    <tr>
+        <td>{{ room.name }}</td>
+
+        {% for slot in slots %}
+            {% if room.id in occupied and slot in occupied[room.id] %}
+                <td class="occupied">Booked</td>
+            {% else %}
+                <td class="available">Available</td>
+            {% endif %}
+        {% endfor %}
+    </tr>
+    {% endfor %}
+</table>
+
+</body>
+</html>
