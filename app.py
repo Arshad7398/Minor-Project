@@ -3462,13 +3462,14 @@ def manage_batch(batch_id):
                     invalid_count = 0
                     
                     for row in csv_input:
-                        if len(row) < 2 or not row[0].strip() or not row[1].strip():
+                        if len(row) < 3 or not row[0].strip() or not row[1].strip() or not row[2].strip():
                             invalid_count += 1
                             continue
                         
                         name = row[0].strip()
                         try:
                             capacity = int(row[1])
+                            idd = int(row[2])
                         except ValueError:
                             invalid_count += 1
                             continue
