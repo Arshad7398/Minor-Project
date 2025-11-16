@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Classroom | TimeTable System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #3f37c9;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --gray: #6c757d;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: var(--dark);
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .container { max-width: 700px; margin: auto; }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: .8rem;
+            align-items: center;
+        }
+
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            font-weight: 500;
+            margin-bottom: .5rem;
+            display: block;
+        }
+
+        input {
+            width: 100%;
+            padding: .9rem;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+            transition: .3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+
+        .btn {
+            padding: .8rem 1.4rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            transition: .3s ease;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: white;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .back-link {
+            margin-top: 1.5rem;
+            display: inline-flex;
+            gap: .5rem;
+            color: var(--primary);
+            font-weight: 500;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1><i class="fas fa-edit"></i> Edit Classroom</h1>
+
+        <div class="card">
+            <form method="POST" action="{{ url_for('edit_classroom', id=classroom.id,idd=idd) }}">
+
+                <div class="form-group">
+                    <label>Classroom Name</label>
+                    <input type="text" name="name" value="{{ classroom.name }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Capacity</label>
+                    <input type="number" name="capacity" value="{{ classroom.capacity }}" min="1" required>
+                </div>
+
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Update Classroom
+                    </button>
+
+                    <a href="{{ url_for('manage_classrooms',idd=idd) }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <a href="{{ url_for('manage_classrooms',idd=idd) }}" class="back-link">
+            <i class="fas fa-arrow-left"></i> Back to Classrooms
+        </a>
+
+    </div>
+
+</body>
+</html>

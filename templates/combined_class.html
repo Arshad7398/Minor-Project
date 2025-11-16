@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Special Course</title>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: "Poppins", sans-serif;
+            background: #eef1f5;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 750px;
+            margin: 40px auto;
+            background: white;
+            padding: 35px;
+            border-radius: 18px;
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        h2, h3 {
+            text-align: center;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 25px;
+        }
+
+        label {
+            font-weight: 500;
+            display: block;
+            margin-bottom: 6px;
+            color: #444;
+            font-size: 14px;
+        }
+
+        input[type="text"], select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #cfcfcf;
+            border-radius: 12px;
+            font-size: 14px;
+            margin-bottom: 18px;
+            background: #fafafa;
+        }
+
+        .row-item {
+            padding: 18px;
+            background: #f8f9fc;
+            border-radius: 12px;
+            margin-bottom: 18px;
+            border: 1px solid #e8e8e8;
+        }
+
+        button {
+            padding: 12px 18px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .add-btn { background: #3867d6; color: white; }
+        .remove-btn { background: #fc5c65; color: white; width: 100%; margin-top: 10px; }
+        .submit-btn { background: #20bf6b; color: white; width: 100%; height: 48px; font-size: 16px; margin-top: 25px; }
+
+        /* Table Style */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 35px;
+        }
+
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th { background: #f4f6fa; }
+
+        .badge {
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: white;
+        }
+
+        .odd { background: #3867d6; }
+        .even { background: #20bf6b; }
+
+        .delete-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            background: #fc5c65;
+            color: white;
+            border-radius: 10px;
+            text-decoration: none;
+        }
+    </style>
+
+    <script>
+        function filterBatches() {
+            const isOdd = document.getElementById("odd_check").checked;
+            let selects = document.querySelectorAll(".batch-select");
+
+            selects.forEach(sel => {
+                let currentValue = sel.value;
+                let shouldReset = false;
+
+                for (let option of sel.options) {
+                    if (option.value === "") continue;
+
+                    const isOptionOdd = option.dataset.sem === "odd";
+
+                    if (isOdd) {
+                        option.hidden = !isOptionOdd;
+                        option.disabled = !isOptionOdd;
+                        if (!isOptionOdd && option.value === currentValue) shouldReset = true;
+                    } else {
+                        option.hidden = isOptionOdd;
+                        option.disabled = isOptionOdd;
+                        if (isOptionOdd && option.value === currentValue) shouldReset = true;
+                    }
+                }
+
+                if (shouldReset) sel.value = "";
+            });
+        }
+
+        function addRow() {
+            let div = document.getElementById("rows");
+
+            let row = document.createElement("div");
+            row.classList.add("row-item");
+
+            row.innerHTML = `
+                <label>Batch</label>
+                <select name="batch_id" class="batch-select">
+                    <option value="" disabled selected hidden>Select Batch</option>
+                    {% for batch in batches %}
+                        <option value="{{ batch.id }}" data-sem="{{ 'odd' if batch.odd_sem else 'even' }}">
+                            {{ batch.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <label>Course Code</label>
+                <input type="text" name="course_code" required>
+
+                <button type="button" class="remove-btn" onclick="this.parentElement.remove()">Remove</button>
+            `;
+
+            div.appendChild(row);
+            filterBatches();
+        }
+
+        window.onload = filterBatches;
+    </script>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Create Special Course</h2>
+
+<form method="POST">
+
+    <label>Name</label>
+    <input type="text" name="name" required>
+
+    <div class="form-group">
+        <label for="lecture">Number of Lectures</label>
+        <input type="number" id="lecture" name="lecture" required min="1" max="6">
+    </div>
+
+    <div class="form-group">
+        <label for="capacity">Capacity</label>
+        <input type="number" id="capacity" name="capacity" required min="1">
+    </div>
+
+    <label>Select Professor</label>
+    <select name="professor_id" required>
+        <option value="">-- Select Professor --</option>
+        {% for p in professors %}
+            <option value="{{ p.id }}">{{ p.name }}</option>
+        {% endfor %}
+    </select>
+
+    <label>Semester Type</label>
+    <div style="margin-bottom: 18px;">
+        <input type="checkbox" name="is_odd" id="odd_check" onclick="filterBatches()">
+        <span>Odd Semester (Unchecked = Even)</span>
+    </div>
+
+    <h3>Batch-wise Course Codes</h3>
+
+    <div id="rows"></div>
+
+    <button type="button" class="add-btn" onclick="addRow()">+ Add Batch</button>
+
+    <button type="submit" class="submit-btn">Create Course</button>
+</form>
+
+<!-- --------------------------------------------- -->
+<!-- SHOW ALL COMBINED COURSES BELOW THE FORM      -->
+<!-- --------------------------------------------- -->
+
+<h3>Existing Combined Courses</h3>
+
+<table>
+    <tr>
+        <th>Name</th>
+        <th>Professor</th>
+        <th>Semester</th>
+        <th>Batch → Course Code</th>
+        <th>Action</th>
+    </tr>
+
+    {% for c in combined_courses %}
+    <tr>
+        <td>{{ c.name }}</td>
+        <td>{{ prof_dict[c.professor_id] }}</td>
+
+        <td>
+            {% if c.is_odd %}
+                <span class="badge odd">Odd</span>
+            {% else %}
+                <span class="badge even">Even</span>
+            {% endif %}
+        </td>
+
+        <td>
+            <ul style="margin:0; padding-left:18px;">
+                {% for item in c.batch_course_list %}
+                    <li>
+                        {{ batch_dict[item['batch_id']] }} →
+                        <b>{{ item['course_code'] }}</b>
+                    </li>
+                {% endfor %}
+            </ul>
+        </td>
+
+        <td>
+            <form action="/delete_combined_course/{{ c.id }}" method="POST" style="display:inline;">
+                <button type="submit" class="delete-btn"
+                        onclick="return confirm('Delete this combined course?')">
+                    Delete
+                </button>
+            </form>
+
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+
+</div>
+
+</body>
+</html>

@@ -316,6 +316,7 @@
                     <tr>
                         <th>Classroom Name</th>
                         <th>Capacity</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -329,6 +330,10 @@
                                 Delete
                                 </button>
                             </form>
+                            <a href="{{ url_for('edit_classroom', id=classroom.id,idd=idd) }}"
+                            class="btn btn-success">
+                            <i class="fas fa-edit"></i> Edit
+                            </a>
                         </td>
                     </tr>
                     {% endfor %}

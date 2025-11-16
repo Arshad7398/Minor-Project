@@ -3,196 +3,234 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Course - {{ course.name }}</title>
+    <title>Edit Course</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
     <style>
         :root {
             --primary: #4361ee;
             --primary-dark: #3a56d4;
-            --danger: #f72585;
+            --secondary: #3f37c9;
             --light: #f8f9fa;
             --dark: #212529;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
-        body { background: #f5f7fa; color: var(--dark); padding: 20px; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
         .container {
-            max-width: 900px;
+            max-width: 700px;
             margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-            padding: 30px;
         }
+
         h1 {
-            text-align: center;
+            font-size: 2rem;
+            font-weight: 600;
             color: var(--primary);
-            margin-bottom: 25px;
-            border-bottom: 2px solid rgba(67,97,238,0.1);
-            padding-bottom: 10px;
+            text-align: center;
+            margin-bottom: 2rem;
         }
-        form { background: #f8f9fa; padding: 25px; border-radius: 10px; }
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-weight: 500; }
+
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-weight: 500;
+            color: var(--dark);
+        }
+
         input, select {
-            width: 100%; padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px;
-            font-size: 16px; transition: all 0.3s;
+            width: 100%;
+            padding: 0.7rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: 0.2s ease;
         }
+
         input:focus, select:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(67,97,238,0.2);
             outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
         }
-        .checkbox-group { display: flex; align-items: center; margin-bottom: 15px; }
-        input[type="checkbox"] { margin-right: 8px; transform: scale(1.2); }
-        button {
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1.2rem;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.8rem;
+            border-radius: 8px;
             background-color: var(--primary);
             color: white;
             border: none;
-            padding: 12px 25px;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 500;
+            font-size: 1rem;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: 0.3s ease;
+            margin-top: 1rem;
         }
-        button:hover {
+
+        .btn:hover {
             background-color: var(--primary-dark);
-            transform: translateY(-2px);
         }
+
         .back-link {
-            display: inline-block;
-            margin-top: 20px;
-            text-decoration: none;
+            display: block;
+            margin-top: 1.5rem;
+            text-align: center;
             color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
         }
-        .back-link:hover { text-decoration: underline; }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
-    {% include "_toast.html" %}
-    <div class="container">
-        <h1><i class="fas fa-edit"></i> Edit Course - {{ course.name }}</h1>
 
-        <form method="POST">
+<div class="container">
+    <h1>Edit Course - {{ course.name }}</h1>
+
+    <div class="card">
+        <form method="POST" onsubmit="return validateLabSelection()">
+            
             <div class="form-group">
-                <label for="course_name">Course Name</label>
-                <input type="text" id="course_name" name="course_name" value="{{ course.name }}" required>
+                <label>Course Name</label>
+                <input type="text" name="course_name" value="{{ course.name }}" required>
             </div>
+            {#
+            <div class="form-group">
+                <label>Credits</label>
+                <input type="number" name="credits" min="1" max="6" value="{{ course.credits }}" required>
+            </div>#}
 
             <div class="form-group">
-                <label for="credits">Credits</label>
-                <input type="number" id="credits" name="credits" value="{{ course.credits }}" min="1" max="6" required>
+                <label>Course Code</label>
+                <input type="text" name="course_code" value="{{ course.course_code }}">
             </div>
-
+            {#
             <div class="form-group">
                 <label>Professor</label>
                 <select name="professor_id" required>
                     <option value="">-- Select Professor --</option>
                     {% for prof in professors %}
-                    <option value="{{ prof.id }}" {% if course.professor_id == prof.id %}selected{% endif %}>{{ prof.name }}</option>
+                        <option value="{{ prof.id }}" {% if course.professor_id == prof.id %}selected{% endif %}>{{ prof.name }}</option>
                     {% endfor %}
                 </select>
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="is_lab" name="is_lab" {% if course.is_lab %}checked{% endif %}>
+                <label>Lab Course</label>
             </div>
 
             <div class="form-group">
                 <label>Lab Professor</label>
                 <select name="professor_id_lab">
-                    <option value="">-- Select Professor --</option>
+                    <option value="">-- Select Lab Professor --</option>
                     {% for prof in professors %}
-                    <option value="{{ prof.id }}" {% if course.lab_professor_id == prof.id %}selected{% endif %}>{{ prof.name }}</option>
+                    <option value="{{ prof.id }}" {% if course.professor_id_lab == prof.id %}selected{% endif %}>{{ prof.name }}</option>
                     {% endfor %}
                 </select>
             </div>
 
             <div class="form-group">
-                <label>Choose Suitable Lab 1</label>
+                <label>Suitable Lab Room 1</label>
                 <select name="lab_classroom_id1">
                     <option value="">-- Select Lab --</option>
                     {% for room in classrooms %}
-                    <option value="{{ room.id }}" {% if course.lab_id1 == room.id %}selected{% endif %}>{{ room.name }}</option>
+                        <option value="{{ room.id }}" {% if course.lab_classroom_id1 == room.id %}selected{% endif %}>{{ room.name }}</option>
                     {% endfor %}
                 </select>
             </div>
 
             <div class="form-group">
-                <label>Choose Suitable Lab 2</label>
+                <label>Suitable Lab Room 2</label>
                 <select name="lab_classroom_id2">
                     <option value="">-- Select Lab --</option>
                     {% for room in classrooms %}
-                    <option value="{{ room.id }}" {% if course.lab_id2 == room.id %}selected{% endif %}>{{ room.name }}</option>
+                        <option value="{{ room.id }}" {% if course.lab_classroom_id2 == room.id %}selected{% endif %}>{{ room.name }}</option>
                     {% endfor %}
                 </select>
             </div>
 
             <div class="form-group">
-                <label>Choose Suitable Lab 3</label>
+                <label>Suitable Lab Room 3</label>
                 <select name="lab_classroom_id3">
                     <option value="">-- Select Lab --</option>
                     {% for room in classrooms %}
-                    <option value="{{ room.id }}" {% if course.lab_id3 == room.id %}selected{% endif %}>{{ room.name }}</option>
+                        <option value="{{ room.id }}" {% if course.lab_classroom_id3 == room.id %}selected{% endif %}>{{ room.name }}</option>
                     {% endfor %}
                 </select>
             </div>
 
-            <div class="form-row">
-                <div class="checkbox-group">
-                    <input type="checkbox" id="is_lab" name="is_lab" {% if course.is_lab %}checked{% endif %}>
-                    <label for="is_lab">Lab Course</label>
-                </div>
+            <div class="checkbox-group">
+                <input type="checkbox" name="priority_day" {% if course.priority_day %}checked{% endif %}>
+                <label>Priority Day</label>
+            </div>
 
-                <div class="checkbox-group">
-                    <input type="checkbox" id="is_priority" name="is_priority" {% if course.priority %}checked{% endif %}>
-                    <label for="is_priority">Priority Course</label>
-                </div>
+            <div class="checkbox-group">
+                <input type="checkbox" name="priority_day_type" {% if course.priority_day_type %}checked{% endif %}>
+                <label>Priority Evening</label>
+            </div>
 
-                <div class="checkbox-group">
-                    <input type="checkbox" id="priority_day" name="priority_day" 
-                        {% if course.priority_morning %}checked{% endif %}
-                        onchange="handlePriorityCheckbox(this)">
-                    <label for="priority_day">Priority Day</label>
-                </div>
-
-                <div class="checkbox-group">
-                    <input type="checkbox" id="priority_day_type" name="priority_day_type" 
-                        {% if course.priority_evening %}checked{% endif %}
-                        onchange="handlePriorityCheckbox(this)">
-                    <label for="priority_day_type">Priority Evening</label>
-                </div>
+            <div class="checkbox-group">
+                <input type="checkbox" name="tutorial" {% if course.tutorial %}checked{% endif %}>
+                <label>Tutorial</label>
             </div>
 
             <div class="form-group">
-                <label for="avoid_day">Avoid Specific Day</label>
-                <select name="avoid_day" id="avoid_day">
-                    <option value="">Select a Day to Avoid</option>
+                <label>Avoid Day</label>
+                <select name="avoid_day">
+                    <option value="">-- Select Day --</option>
                     <option value="0" {% if course.avoid_day == 0 %}selected{% endif %}>Monday</option>
                     <option value="1" {% if course.avoid_day == 1 %}selected{% endif %}>Tuesday</option>
                     <option value="2" {% if course.avoid_day == 2 %}selected{% endif %}>Wednesday</option>
                     <option value="3" {% if course.avoid_day == 3 %}selected{% endif %}>Thursday</option>
                     <option value="4" {% if course.avoid_day == 4 %}selected{% endif %}>Friday</option>
                 </select>
-            </div>
+            </div>#}
 
-            <button type="submit"><i class="fas fa-save"></i> Save Changes</button>
+            <button type="submit" class="btn"><i class="fas fa-save"></i> Update Course</button>
         </form>
-
-        <a href="{{ url_for('manage_batch', batch_id=course.batch_id) }}" class="back-link"><i class="fas fa-arrow-left"></i> Back to Batch</a>
     </div>
-</body>
-</html>
 
+    <a href="{{ url_for('manage_batch', batch_id=batch_id) }}" class="back-link"><i class="fas fa-arrow-left"></i> Back to Batch</a>
+</div>
 
 <script>
-function handlePriorityCheckbox(clicked) {
-    const dayCheckbox = document.getElementById("priority_day");
-    const eveningCheckbox = document.getElementById("priority_day_type");
+    function validateLabSelection() {
+        const isLab = document.getElementById('is_lab').checked;
+        const labProf = document.querySelector('select[name="professor_id_lab"]').value;
 
-    if (clicked.checked) {
-        if (clicked === dayCheckbox) {
-            eveningCheckbox.checked = false;
-        } else {
-            dayCheckbox.checked = false;
+        if (isLab && labProf === "") {
+            alert("Please select a Lab Professor for Lab Course.");
+            return false;
         }
+        return true;
     }
-}
 </script>
+
+</body>
+</html>

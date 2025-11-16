@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Batch | TimeTable System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --light: #f8f9fa;
+            --dark: #212529;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 2rem;
+            color: var(--dark);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+        }
+
+        .form-group { margin-bottom: 1.5rem; }
+
+        label { font-weight: 500; margin-bottom: 0.4rem; display: block; }
+
+        input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            transition: 0.3s ease;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+            outline: none;
+        }
+
+        .btn {
+            display: inline-flex;
+            padding: 0.8rem 1.4rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 1rem;
+            align-items: center;
+            gap: 0.5rem;
+            transition: 0.3s;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+
+        .back-link {
+            margin-top: 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .back-link:hover { text-decoration: underline; }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        small { color: #6c757d; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1><i class="fas fa-edit"></i> Edit Batch</h1>
+
+    <div class="card">
+        <form action="{{ url_for('edit_batch', id=batch.id,department_id=department_id) }}" method="POST">
+
+            <!-- Batch Name -->
+            <div class="form-group">
+                <label>Batch Name</label>
+                <input type="text" name="name" value="{{ batch.name }}" required>
+            </div>
+
+            <!-- Batch Size -->
+            <div class="form-group">
+                <label>Size</label>
+                <input type="number" name="capacity" value="{{ batch.capacity }}" min="1" required>
+            </div>
+
+            <!-- Odd Sem Checkbox -->
+            <div class="form-group">
+                <label>Odd Semester</label>
+                <div class="checkbox-group">
+                    <input type="checkbox" name="odd_sem" {% if batch.odd_sem %}checked{% endif %}>
+                    <small>Check if this is an odd semester batch.</small>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Update Batch
+            </button>
+        </form>
+
+    </div>
+
+    <a href="{{ url_for('manage_department',department_id=department_id) }}" class="back-link">
+        <i class="fas fa-arrow-left"></i> Back to Manage Batches
+    </a>
+
+</div>
+
+</body>
+</html>

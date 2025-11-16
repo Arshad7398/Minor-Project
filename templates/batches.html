@@ -1,10 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TimeTable Management System</title>
+
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
     <style>
         :root {
             --primary: #4361ee;
@@ -15,283 +19,273 @@
             --success: #4cc9f0;
             --danger: #f72585;
             --warning: #f8961e;
+            --grey: #e9ecef;
         }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
             font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background: linear-gradient(135deg, #eef2f3 0%, #dfe9f3 100%);
             min-height: 100vh;
             position: relative;
             overflow-x: hidden;
             color: var(--dark);
         }
-        
+
         body::before {
             content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             background-image: url("{{ url_for('static', filename='mnnit.jpeg') }}");
             background-size: cover;
             background-position: center;
-            background-attachment: fixed;
-            opacity: 0.15;
+            opacity: 0.12;
             z-index: -1;
+            filter: blur(3px);
         }
-        
+
         .container {
             max-width: 1200px;
-            margin: 0 auto;
+            margin: auto;
             padding: 2rem;
         }
-        
+
         header {
             text-align: center;
             margin-bottom: 3rem;
-            padding: 1rem;
-            border-radius: 10px;
-            background-color: rgba(255, 255, 255, 0.8);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 1.3rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(6px);
+            box-shadow: 0 4px 22px rgba(0,0,0,0.12);
         }
-        
+
         h1 {
-            font-size: 2.5rem;
+            font-size: 2.6rem;
             font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
             background: linear-gradient(to right, var(--primary), var(--secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        
-        .subtitle {
-            font-size: 1.1rem;
-            color: var(--dark);
-            opacity: 0.8;
-        }
-        
+
+        .subtitle { font-size: 1.1rem; opacity: 0.75; }
+
         .actions {
             display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
             justify-content: center;
+            flex-wrap: wrap;
+            gap: 1.2rem;
             margin-bottom: 3rem;
         }
-        
+
         .btn {
+            padding: 0.9rem 1.6rem;
+            border-radius: 10px;
+            font-weight: 600;
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            padding: 0.8rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 500;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border: none;
+            gap: .6rem;
             cursor: pointer;
-        }
-        
-        .btn-primary {
-            background-color: var(--primary);
+            border: none;
+            text-decoration: none;
             color: white;
+            transition: .25s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.12);
         }
-        
-        .btn-primary:hover {
-            background-color: var(--primary-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-        }
-        
+
+        .btn-primary { background: var(--primary); }
+        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-3px); }
+
         .btn-secondary {
-            background-color: white;
+            background: white;
             color: var(--primary);
             border: 2px solid var(--primary);
         }
-        
         .btn-secondary:hover {
-            background-color: var(--primary);
+            background: var(--primary);
             color: white;
-            transform: translateY(-2px);
+            transform: translateY(-3px);
         }
-        
+
         .card-container {
-            background-color: rgba(255, 255, 255, 0.9);
-            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.92);
             padding: 2rem;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-            margin-bottom: 2rem;
+            border-radius: 14px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 10px 35px rgba(0,0,0,0.12);
+            animation: fadeIn 0.7s ease-out;
         }
-        
+
         h2 {
-            font-size: 1.8rem;
-            margin-bottom: 1.5rem;
+            font-size: 1.9rem;
             color: var(--primary);
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: .6rem;
+            margin-bottom: 1.8rem;
         }
-        
+
         h2::before {
             content: "";
-            display: block;
-            width: 8px;
-            height: 30px;
+            width: 10px; height: 32px;
             background: linear-gradient(to bottom, var(--primary), var(--secondary));
             border-radius: 4px;
         }
-        
+
         .batch-list {
             display: grid;
+            gap: 1.4rem;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1.2rem;
         }
-        
+
         .batch-card {
-            background-color: white;
-            border-radius: 10px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-            transition: all 0.3s ease;
-            border-left: 4px solid var(--primary);
+            padding: 1.6rem;
+            background: white;
+            border-left: 5px solid var(--primary);
+            border-radius: 12px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+            transition: .25s ease;
         }
-        
+
         .batch-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+            transform: translateY(-6px);
+            box-shadow: 0 8px 26px rgba(0,0,0,0.15);
         }
-        
+
         .batch-name {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             font-weight: 600;
-            margin-bottom: 1rem;
             color: var(--primary);
+            margin-bottom: 1rem;
         }
-        
+
         .batch-actions {
             display: flex;
-            gap: 0.8rem;
+            gap: 0.9rem;
             margin-top: 1.2rem;
         }
-        
+
         .batch-btn {
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-        
-        .batch-btn.manage {
-            background-color: var(--primary);
+            padding: .55rem 1.1rem;
+            border-radius: 7px;
+            font-weight: 600;
+            font-size: .92rem;
             color: white;
+            cursor: pointer;
         }
-        
-        .batch-btn.download {
-            background-color: var(--success);
+
+        .batch-btn.manage { background: var(--primary); }
+        .batch-btn.download { background: var(--success); }
+
+        .batch-btn:hover { transform: translateY(-2px); opacity: .9; }
+
+        .delete-btn {
+            background: var(--danger);
             color: white;
+            border: none;
+            padding: .55rem 1.1rem;
+            font-size: .9rem;
+            border-radius: 7px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: .25s ease;
         }
-        
-        .batch-btn:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
+
+        .delete-btn:hover { background: #d5136d; transform: translateY(-2px); }
+
+        .edit-btn {
+            background: var(--warning);
+            color: white;
+            padding: .55rem 1.1rem;
+            border-radius: 7px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
         }
-        
-        .download-all {
-            text-align: center;
-            margin-top: 2rem;
-        }
-        
-        @media (max-width: 768px) {
-            .container {
-                padding: 1rem;
-            }
-            
-            h1 {
-                font-size: 2rem;
-            }
-            
-            .batch-list {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        /* Animation */
+
+        .edit-btn:hover { opacity: .9; transform: translateY(-2px); }
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
-        .card-container {
-            animation: fadeIn 0.6s ease-out forwards;
-        }
-        
-        /* Icon styles */
-        .icon {
-            margin-right: 0.5rem;
-            font-size: 1.1rem;
+
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            h1 { font-size: 2rem; }
+            .batch-list { grid-template-columns: 1fr; }
         }
     </style>
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
+
 <body>
+
     {% include "_toast.html" %}
+
     <div class="container">
+
         <header>
             <h1>TimeTable Management System</h1>
             <p class="subtitle">Efficiently manage and schedule your academic timetable</p>
         </header>
-        
+
         <div class="actions">
-            <a href="{{ url_for('create_batch',department_id=department_id) }}" class="btn btn-primary">
-                <i class="fas fa-plus-circle icon"></i> Create New Batch
+            <a href="{{ url_for('create_batch', department_id=department_id) }}" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i> Create New Batch
             </a>
-            <a href="{{ url_for('manage_professors',department_id=department_id) }}" class="btn btn-secondary">
-                <i class="fas fa-flask icon"></i> Manage Professors
+
+            <a href="{{ url_for('manage_professors', department_id=department_id) }}" class="btn btn-secondary">
+                <i class="fas fa-users"></i> Manage Professors
             </a>
         </div>
-        
+
         <div class="card-container">
             <h2><i class="fas fa-list-ul"></i> Existing Batches</h2>
-            
+
             {% if batches %}
             <div class="batch-list">
+
                 {% for batch in batches %}
                 <div class="batch-card">
+
                     <div class="batch-name">{{ batch.name }}</div>
+
                     <div class="batch-actions">
                         <a href="{{ url_for('manage_batch', batch_id=batch.id) }}" class="batch-btn manage">
                             <i class="fas fa-cog"></i> Manage
                         </a>
+
                         <a href="{{ url_for('download_timetable', batch_id=batch.id) }}" class="batch-btn download">
                             <i class="fas fa-download"></i> Download
                         </a>
-
                     </div>
-                    <div>
-                        <form action="{{ url_for('delete_batch', id=batch.id) }}" method="post" style="display:inline;">
-                            <button type="submit" onclick="return confirm('Are you sure you want to delete {{ batch.name }}?');">
-                            Delete
+
+                    <div style="margin-top: 1rem; display: flex; gap: .7rem;">
+                        <form action="{{ url_for('delete_batch', id=batch.id) }}" method="post">
+                            <button type="submit" class="delete-btn"
+                                onclick="return confirm('Delete {{ batch.name }}?')">
+                                <i class="fas fa-trash"></i> Delete
                             </button>
                         </form>
+
+                        <a href="{{ url_for('edit_batch', id=batch.id,department_id=department_id) }}" class="edit-btn">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
                     </div>
+
                 </div>
                 {% endfor %}
-            </div>
-            {% else %}
-            <p style="text-align: center; color: #666; padding: 2rem 0;">No batches created yet. Create your first batch to get started!</p>
-            {% endif %}
 
-            
+            </div>
+
+            {% else %}
+            <p style="text-align:center; padding:2rem; color:#666;">No batches created yet.</p>
+            {% endif %}
         </div>
+
     </div>
+
 </body>
 </html>

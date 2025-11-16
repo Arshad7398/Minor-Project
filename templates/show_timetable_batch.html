@@ -165,7 +165,7 @@ tr:nth-child(even) {
                 </tr>
             </thead>
             <tbody>
-                {% for day in range(5) %}
+                {% for day in range(6) %}
                     <tr>
                         <td>
                             {% if day == 0 %}Monday
@@ -173,6 +173,7 @@ tr:nth-child(even) {
                             {% elif day == 2 %}Wednesday
                             {% elif day == 3 %}Thursday
                             {% elif day == 4 %}Friday
+                            {% elif day == 5 %}Saturday
                             {% endif %}
                         </td>
                         {% for hour in range(10) %}
