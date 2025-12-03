@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Assign Professors</title>
+    <style>
+        .container {
+            display: flex;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .left, .right {
+            width: 50%;
+            padding: 20px;
+        }
+        .course-box {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        select {
+            padding: 6px;
+        }
+        button {
+            padding: 10px 18px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Assign Professors to Courses</h1>
+
+    <!-- FORM START -->
+    <form method="post" onsubmit="return validateForm(event)">
+        <div class="container">
+
+            <!-- Left: Courses -->
+            <div class="left">
+                <h3>Courses</h3>
+                {% for course in courses %}
+                    <div class="course-box">
+                        <strong>{{ course.name }} ({{ batch_map[course.batch_id] }})</strong>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Right: Select Professors -->
+            <div class="right">
+                <h3>Select Professor</h3>
+                {% for course in courses %}
+                    <div class="course-box">
+                        <label>{{ course.name }}</label>
+
+                        <select name="{{ course.id }}" required>
+                            <option value="">-- Select Professor --</option>
+
+                            {% for prof in professors %}
+                                <option value="{{ prof.id }}"
+                                    {% if course.professor_id == prof.id %} selected {% endif %}>
+                                    {{ prof.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endfor %}
+            </div>
+
+        </div>
+
+        <button type="submit">Delete Professor</button>
+    </form>
+    <!-- FORM END -->
+
+
+
+    <!-- JAVASCRIPT VALIDATION -->
+    <script>
+
+        const blockedProfessor = {{ id }}; 
+
+        function validateForm(event) {
+            const selects = document.querySelectorAll("select");
+
+            for (let sel of selects) {
+                const val = Number(sel.value);
+
+                if (val === blockedProfessor) {
+                    event.preventDefault(); // stop form submission
+
+                    alert("This professor cannot be assigned. Please choose another.");
+
+                    sel.style.border = "2px solid red"; // highlight invalid
+                    sel.focus();
+                    return false;
+                }
+            }
+
+            return true; // everything ok
+        }
+    </script>
+
+</body>
+</html>

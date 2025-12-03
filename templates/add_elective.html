@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Add Electives — name them</title>
+  <style>
+    /* (same CSS as before) */
+    body { font-family: "Poppins", Arial, sans-serif; background: #eef1f7; padding: 30px; }
+    .card { background: #ffffff; max-width: 920px; margin: 0 auto; padding: 28px 32px; border-radius: 14px; box-shadow: 0 10px 28px rgba(0,0,0,0.08); border: 1px solid #e0e4ef; }
+    h2 { margin-bottom: 20px; color: #2a3f8f; font-weight:600; font-size:1.6rem; text-align:center; }
+    .row { display:flex; gap:12px; align-items:center; margin-bottom:18px; }
+    label { min-width:120px; font-weight:600; color:#344767; font-size:0.95rem; }
+    input[type="text"], input[type="number"], select { flex:1; padding:10px 14px; font-size:0.95rem; border-radius:8px; border:1px solid #cdd5e0; background:#fdfdfd; transition:0.2s ease; }
+    .name-row { display:flex; gap:10px; align-items:center; background:#f8f9ff; padding:10px; border-radius:10px; margin-bottom:10px; border:1px solid #d7ddf3; }
+    .name-row .name-input { flex: 1 1 35%; min-width:160px; }
+    .name-row .prof-input { flex: 1 1 20%; min-width:120px; }
+    .name-row .lab-input { flex: 1 1 20%; min-width:120px; }
+    .name-row .labprof-input { flex: 1 1 20%; min-width:120px; }
+    .name-row button { background:#e63946; padding:7px 12px; border-radius:6px; color:#fff; border:none; cursor:pointer; }
+    .name-row button:hover { background:#cc2f3c; }
+    .controls { display:flex; gap:8px; flex-wrap:wrap; }
+    .names { margin-top:12px; padding-left:4px; border-left:3px solid #4a6cf7; }
+    button.primary { background:#4a6cf7; color:#fff; border:none; padding:9px 16px; border-radius:8px; cursor:pointer; font-weight:500; }
+    button.primary:hover { background:#3d5ce0; transform: translateY(-2px); }
+    form > div:last-child button { width:100%; margin-top:12px; font-size:1rem; padding:12px; background:#1d4ed8; border-radius:10px; }
+    form > div:last-child button:hover { background:#153fa8; }
+    @media (max-width: 900px) {
+      .name-row { flex-direction:column; align-items:flex-start; }
+      .name-row .name-input, .name-row .prof-input, .name-row .lab-input, .name-row .labprof-input { width:100%; }
+      .row { flex-direction:column; align-items:flex-start; }
+      label { min-width:auto; margin-bottom:6px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <h2>Add Electives — give names & assign professor + lab</h2>
+
+    <form id="electiveForm" method="POST" action="{{ url_for('elective_course', department_id=department_id) }}">
+      <div class="row">
+        <label for="semester">Semester</label>
+        <input id="semester" name="semester" type="number" min="1" placeholder="e.g. 1" required />
+      </div>
+
+      <div class="form-group">
+          <label for="lectureHour">Lecture Hours</label>
+          <input type="number" id="lectureHour" name="lectureHour" min="0" max="6" value="0">
+      </div>
+
+      <div class="form-group">
+          <label for="labHour">Lab Hours</label>
+          <input type="number" id="labHour" name="labHour" min="0" max="6" value="0">
+      </div>
+
+      <div class="form-group">
+          <label for="tutorialHour">Tutorial Hours</label>
+          <input type="number" id="tutorialHour" name="tutorialHour" min="0" max="6" value="0">
+      </div>
+
+      <div class="row controls">
+        <label for="count">Number</label>
+        <input id="count" type="number" min="1" value="3" style="max-width:120px;" />
+        <button type="button" id="generate" class="primary">Generate inputs</button>
+        <button type="button" id="addOne" class="primary">Add one</button>
+        <button type="button" id="clear" class="primary">Clear</button>
+      </div>
+
+      <div id="namesWrapper" class="names"></div>
+
+      <div>
+        <button type="submit">Create Electives</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Hidden templates (populated by Jinja) -->
+  <div id="profTemplateContainer" style="display:none;">
+    <select class="prof-select">
+      <option value="-1">Not assigned</option>
+      <option value="">-- Select professor --</option>
+      {% for p in professors %}
+      <option value="{{ p.id }}">{{ p.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div id="labTemplateContainer" style="display:none;">
+    <select class="lab-select" required>
+      <option value="-1">Not assigned</option>
+      <option value="">-- Select lab --</option>
+      {% for l in labs %}
+      <option value="{{ l.id }}">{{ l.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div id="labProfTemplateContainer" style="display:none;">
+    <select class="labprof-select">
+      <option value="-1">Not assigned</option>
+      <option value="">-- Select lab professor --</option>
+      {% for lp in professors %}
+      <option value="{{ lp.id }}">{{ lp.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <script>
+    const generateBtn = document.getElementById('generate');
+    const addOneBtn = document.getElementById('addOne');
+    const clearBtn = document.getElementById('clear');
+    const countInput = document.getElementById('count');
+    const namesWrapper = document.getElementById('namesWrapper');
+    const form = document.getElementById('electiveForm');
+
+    const profTemplate = document.querySelector('#profTemplateContainer .prof-select');
+    const labTemplate = document.querySelector('#labTemplateContainer .lab-select');
+    const labProfTemplate = document.querySelector('#labProfTemplateContainer .labprof-select');
+
+    function makeNameRow(idx, nameValue='', profValue='', labValue='', labProfValue='') {
+      const div = document.createElement('div');
+      div.className = 'name-row';
+
+      // name input
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.name = 'names[]';
+      inp.placeholder = `Elective name ${idx + 1}`;
+      inp.value = nameValue;
+      inp.required = true;
+      inp.className = 'name-input';
+
+      // professor select (clone)
+      const selProf = profTemplate.cloneNode(true);
+      selProf.name = 'professors[]';
+      selProf.className = 'prof-input';
+      // set default to "-1" (Not assigned)
+      if (profValue) selProf.value = String(profValue);
+      else selProf.value = "-1";
+
+      // lab select (clone)
+      const selLab = labTemplate.cloneNode(true);
+      selLab.name = 'labs[]';
+      selLab.className = 'lab-input';
+      if (labValue) selLab.value = String(labValue);
+      else selLab.value = "-1";
+
+      // lab professor select (clone)
+      const selLabProf = labProfTemplate.cloneNode(true);
+      selLabProf.name = 'lab_professors[]';
+      selLabProf.className = 'labprof-input';
+      if (labProfValue) selLabProf.value = String(labProfValue);
+      else selLabProf.value = "-1";
+
+      
+
+      // remove button
+      const rm = document.createElement('button');
+      rm.type = 'button';
+      rm.textContent = 'Remove';
+      rm.onclick = () => div.remove();
+
+      // append in desired order
+      div.appendChild(inp);
+      div.appendChild(selProf);
+      div.appendChild(selLab);
+      div.appendChild(selLabProf);
+      div.appendChild(rm);
+      return div;
+    }
+
+    generateBtn.addEventListener('click', () => {
+      const cnt = parseInt(countInput.value) || 0;
+      if (cnt <= 0) { alert('Enter positive number'); return; }
+      namesWrapper.innerHTML = '';
+      for (let i=0; i<cnt; i++) namesWrapper.appendChild(makeNameRow(i));
+    });
+
+    addOneBtn.addEventListener('click', () => {
+      const idx = namesWrapper.children.length;
+      namesWrapper.appendChild(makeNameRow(idx));
+    });
+
+    clearBtn.addEventListener('click', () => {
+      namesWrapper.innerHTML = '';
+    });
+
+    form.addEventListener('submit', (e) => {
+      const nameInputs = document.querySelectorAll('input[name="names[]"]');
+      const profSelects = document.querySelectorAll('select[name="professors[]"]');
+      const labSelects = document.querySelectorAll('select[name="labs[]"]');
+      const labProfSelects = document.querySelectorAll('select[name="lab_professors[]"]');
+
+      if (nameInputs.length === 0) {
+        e.preventDefault();
+        alert("Please generate or add at least one elective name.");
+        return false;
+      }
+      // all arrays must match length
+      if (!(nameInputs.length === profSelects.length && profSelects.length === labSelects.length && labSelects.length === labProfSelects.length)) {
+        e.preventDefault();
+        alert("Mismatch between fields. Make sure each row has all fields.");
+        return false;
+      }
+      for (let i=0; i<nameInputs.length; i++) {
+        if (!nameInputs[i].value.trim()) {
+          e.preventDefault();
+          alert("Please fill all elective name fields (or remove empty rows).");
+          return false;
+        }
+        // NOTE: we intentionally allow "-1" (Not assigned) to be submitted.
+        // no need to set values here; default was already applied on creation.
+      }
+      return true;
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const cnt = parseInt(countInput.value) || 0;
+      for (let i=0; i<cnt; i++) namesWrapper.appendChild(makeNameRow(i));
+    });
+  </script>
+</body>
+</html>

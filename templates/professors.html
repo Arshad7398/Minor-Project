@@ -358,11 +358,10 @@
                     <tr>
                         <td>{{ professor.name }}</td>
                         <td>
-                            <form action="{{ url_for('delete_professor', id=professor.id,department_id=department_id) }}" method="post" style="display:inline;">
-                                <button type="submit" onclick="return confirm('Are you sure you want to delete {{ professor.name }}?');">
-                                Delete
-                                </button>
-                            </form>
+                            <a href="{{ url_for('confirm_delete_professor', id=professor.id, department_id=department_id) }}">
+                                <button type="button">Delete</button>
+                            </a>
+
                         </td>
                         <td>
                             <a href="{{ url_for('edit_professor', id=professor.id,department_id=department_id) }}" 

@@ -313,20 +313,58 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="credits">Credits</label>
-                    <input type="number" id="credits" name="credits" required min="1" max="6">
+                    <label for="lectureHour">Lecture Hours</label>
+                    <input type="number" id="lectureHour" name="lectureHour" min="0" max="6" value="0">
                 </div>
+
+                <div class="form-group">
+                    <label for="labHour">Lab Hours</label>
+                    <input type="number" id="labHour" name="labHour" min="0" max="6" value="2">
+                </div>
+
+                <div class="form-group">
+                    <label for="tutorialHour">Tutorial Hours</label>
+                    <input type="number" id="tutorialHour" name="tutorialHour" min="0" max="6" value="0">
+                </div>
+
+                
 
                 <div class="form-group">
                     <label for="course_code">Course Code</label>
                     <input type="text" id="course_code" name="course_code">
                 </div>
-                
-                <!-- <div class="form-group">
-                    <label for="professor_name">Professor Name</label>
-                    <input type="text" id="professor_name" name="professor_name" required>
-                </div> -->
 
+                <div class="form-group">
+                    <div class="form-group">
+                        <label>Classrooms</label>
+                        <select name="professor_id1" >
+                            <option value="">-- Select Professor --</option>
+                            {% for prof in classroomss %}
+                            <option value="{{ prof.id }}">{{ prof.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Classrooms</label>
+                        <select name="professor_id2" >
+                            <option value="">-- Select Professor --</option>
+                            {% for prof in classroomss %}
+                            <option value="{{ prof.id }}">{{ prof.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Classrooms</label>
+                        <select name="professor_id3" >
+                            <option value="">-- Select Professor --</option>
+                            {% for prof in classroomss %}
+                            <option value="{{ prof.id }}">{{ prof.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
                 
 
                 <div class="form-group">
@@ -340,7 +378,7 @@
                     </select><br><br>
 
                     <label>Professor</label>
-                    <select id="professor" name="professor_id" required>
+                    <select id="professor" name="professor_id">
                         <option value="">-- Select Professor --</option>
                         {% for prof in professors %}
                         <option value="{{ prof.id }}">{{ prof.name }}</option>
@@ -445,36 +483,6 @@
             <button type="submit"><i class="fas fa-plus-circle"></i> Add Course</button>
         </form>
         
-        <!-- Timetable Section -->
-        <!--<h2><i class="fas fa-calendar-day"></i> TimeTable</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Day/Time</th>
-                    {% for i in range(9) %}
-                        <th>{{ i+8 }}:00 - {{ i+9 }}:00</th>
-                    {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for day in range(5) %}
-                    <tr>
-                        <td>
-                            {% if day == 0 %}Monday
-                            {% elif day == 1 %}Tuesday
-                            {% elif day == 2 %}Wednesday
-                            {% elif day == 3 %}Thursday
-                            {% elif day == 4 %}Friday
-                            {% endif %}
-                        </td>
-                        {% for hour in range(9) %}
-                            <td>{# {{ timetable[day][hour] }} #}</td>
-                        {% endfor %}
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>-->
-
         <h3 class="timetable-title">
   <i class="fas fa-calendar-alt"></i> TimeTable
 </h3>
@@ -629,24 +637,7 @@
             const priorityTypeDiv = document.getElementById("priority_shift_type");
             priorityTypeDiv.style.display = priorityCheckbox.checked ? "block" : "none";
         }
-        function validateLabSelection() {
-    const isLab = document.getElementById('is_lab').checked;
-    const labProfessor = document.querySelector('select[name="professor_id_lab"]').value;
-
-    // Case 1: Lab checkbox checked but no professor selected
-    if (isLab && labProfessor === "") {
-        alert("Please select a Lab Professor when Lab Course is checked.");
-        return false; // block form submission
-    }
-
-    // Case 2: Professor selected but Lab checkbox not checked
-    if (!isLab && labProfessor !== "") {
-        alert("Please check 'Lab Course' when selecting a Lab Professor.");
-        return false; // block form submission
-    }
-
-    return true; // allow form submission
-}
+        
         
         function togglePriorityTypeday() {
             const priorityCheckbox = document.getElementById("priorityCheckboxday");
