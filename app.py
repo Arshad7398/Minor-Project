@@ -3682,6 +3682,8 @@ def make_combined_schedule(sc):
 
 def lab_available(lab,prof,batches,day,slot,sem):
     professor=Schedule.query.filter_by(day=day,slot=slot,professor_id=prof,semester=sem).first()
+    if prof==-1:
+        professor=None
     labs=Schedule.query.filter_by(day=day,slot=slot,lab_id=lab,semester=sem).first()
     if professor or labs:
         return False
@@ -3755,7 +3757,12 @@ def assign_lab(model):
 
 def class_available(prof,batches,day,slot,count,sem):
     ids = [1,2,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,43,44,45]
+    # print(type(prof))
+    # print("IDD")
+    # print(prof)
     sch=Schedule.query.filter_by(professor_id=prof,day=day,slot=slot,semester=sem).first()
+    if prof==-1:
+        sch=None
     if sch:
         return False
     classrooms = Classroom.query.filter(Classroom.id.in_(ids)).all()
