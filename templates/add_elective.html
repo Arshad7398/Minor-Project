@@ -25,11 +25,26 @@
     button.primary:hover { background:#3d5ce0; transform: translateY(-2px); }
     form > div:last-child button { width:100%; margin-top:12px; font-size:1rem; padding:12px; background:#1d4ed8; border-radius:10px; }
     form > div:last-child button:hover { background:#153fa8; }
+
+    /* list of existing electives */
+    .existing { margin-top:26px; }
+    .existing h3 { margin-bottom:12px; color:#1f2937; }
+    .elective-item { display:flex; align-items:center; justify-content:space-between; gap:12px; background:#ffffff; padding:12px; border-radius:10px; border:1px solid #e6e9f2; margin-bottom:8px; }
+    .elective-meta { display:flex; gap:10px; align-items:center; flex:1; }
+    .badge { font-size:0.85rem; padding:6px 10px; border-radius:8px; background:#f1f5f9; border:1px solid #e2e8f0; }
+    .elective-actions { display:flex; gap:8px; }
+    .btn-delete { background:#ef4444; color:white; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; }
+    .btn-delete:hover { background:#dc2626; }
+    .btn-edit { background:#4f46e5; color:white; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; }
+    .btn-edit:hover { background:#4338ca; }
+
     @media (max-width: 900px) {
       .name-row { flex-direction:column; align-items:flex-start; }
       .name-row .name-input, .name-row .prof-input, .name-row .lab-input, .name-row .labprof-input { width:100%; }
       .row { flex-direction:column; align-items:flex-start; }
       label { min-width:auto; margin-bottom:6px; }
+      .elective-item { flex-direction:column; align-items:flex-start; }
+      .elective-actions { width:100%; justify-content:flex-end; }
     }
   </style>
 </head>
@@ -73,6 +88,41 @@
         <button type="submit">Create Electives</button>
       </div>
     </form>
+
+    <!-- Existing electives list -->
+    <div class="existing">
+      <h3>Existing electives</h3>
+
+      {% if electives and electives|length > 0 %}
+        {% for el in electives %}
+          <div class="elective-item" id="elective-{{ el.id }}">
+            <div class="elective-meta">
+              <div style="min-width:260px;">
+                <strong>{{ el.name }}</strong>
+                <div style="font-size:0.9rem; color:#475569; margin-top:4px;">
+                  Sem: <span class="badge">{{ el.semester }}</span>
+                  Lect: <span class="badge">{{ el.lecture_hours or 0 }}</span>
+                  Lab: <span class="badge">{{ el.lab_hours or 0 }}</span>
+                  Tut: <span class="badge">{{ el.tutorial_hours or 0 }}</span>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="elective-actions">
+              <!-- delete form: posts to server endpoint to delete the elective -->
+              <form method="POST" action="{{ url_for('delete_elective', el_id=el.id, department_id=department_id) }}" onsubmit="return confirmDelete('{{ el.name|escape }}');" style="display:inline;">
+                <button type="submit" class="btn-delete">Delete</button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div style="color:#6b7280;">No electives added yet.</div>
+      {% endif %}
+
+    </div>
+
   </div>
 
   <!-- Hidden templates (populated by Jinja) -->
@@ -153,8 +203,6 @@
       if (labProfValue) selLabProf.value = String(labProfValue);
       else selLabProf.value = "-1";
 
-      
-
       // remove button
       const rm = document.createElement('button');
       rm.type = 'button';
@@ -219,6 +267,10 @@
       const cnt = parseInt(countInput.value) || 0;
       for (let i=0; i<cnt; i++) namesWrapper.appendChild(makeNameRow(i));
     });
+
+    function confirmDelete(name) {
+      return confirm(`Delete elective "${name}"? This action cannot be undone.`);
+    }
   </script>
 </body>
 </html>
