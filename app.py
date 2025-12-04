@@ -3588,13 +3588,13 @@ def make_combined_schedule(sc):
             print("ERROR:", e)
             flash(f"Error scheduling course: {e}", "error")
 
-def lab_available(lab,prof,batches,day,slot):
-    professor=Schedule.query.filter_by(day=day,slot=slot,professor_id=prof).first()
-    labs=Schedule.query.filter_by(day=day,slot=slot,lab_id=lab).first()
+def lab_available(lab,prof,batches,day,slot,sem):
+    professor=Schedule.query.filter_by(day=day,slot=slot,professor_id=prof,semester=sem).first()
+    labs=Schedule.query.filter_by(day=day,slot=slot,lab_id=lab,semester=sem).first()
     if professor or labs:
         return False
     for batch in batches:
-        done=Schedule.query.filter_by(day=day,slot=slot,batch_id=batch.id).first()
+        done=Schedule.query.filter_by(day=day,slot=slot,batch_id=batch.id,semester=sem).first()
         if done:
             return False
     return True
@@ -3628,9 +3628,9 @@ def assign_lab(model):
             if slot==5:
                 continue
             ans=True
-            for lab,prof in lab_ids,lab_prof_ids:
+            for lab, prof in zip(lab_ids, lab_prof_ids):
                 for i in range(lab_hour):
-                    if slot+i==5 or slot+i==10 or not lab_available(lab,prof,batches,day,slot+i):
+                    if slot+i==5 or slot+i==10 or not lab_available(lab,prof,batches,day,slot+i,sem):
                         ans=False
             if ans:
                 slots.append((day,slot))
@@ -3659,33 +3659,33 @@ def assign_lab(model):
                     db.session.rollback()
                     flash('Error scheduling priority course (2-hour consecutive)', 'error')
 
-def class_available(prof,batches,day,slot,count):
+def class_available(prof,batches,day,slot,count,sem):
     ids = [1,2,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,43,44,45]
-    sch=Schedule.query.filter_by(professor_id=prof,day=day,slot=slot).first()
+    sch=Schedule.query.filter_by(professor_id=prof,day=day,slot=slot,semester=sem).first()
     if sch:
         return False
     classrooms = Classroom.query.filter(Classroom.id.in_(ids)).all()
 
     for batch in batches:
-        done=Schedule.query.filter_by(day=day,slot=slot,batch_id=batch.id).first()
+        done=Schedule.query.filter_by(day=day,slot=slot,batch_id=batch.id,semester=sem).first()
         if done:
             return False
     cnt=0
     for classroom in classrooms:
-        done=Schedule.query.filter_by(day=day,slot=slot,classroom_id=classroom.id).first()
+        done=Schedule.query.filter_by(day=day,slot=slot,classroom_id=classroom.id,semester=sem).first()
         if not done:
             cnt+=1
 
     return cnt>=count
 
-def find_classroom(batches,day,slot,count):
+def find_classroom(batches,day,slot,count,sem):
     ids = [1,2,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,43,44,45]
 
     classrooms = Classroom.query.filter(Classroom.id.in_(ids)).all()
 
     clas=[]
     for classroom in classrooms:
-        done=Schedule.query.filter_by(day=day,slot=slot,classroom_id=classroom.id).first()
+        done=Schedule.query.filter_by(day=day,slot=slot,classroom_id=classroom.id,semester=sem).first()
         if not done:
             clas.append(classroom)
 
@@ -3731,7 +3731,7 @@ def assign_lecture(model):
                 continue
             ans=True
             for prof in prof_ids:
-                if not class_available(prof,batches,day,slot,len(names)):
+                if not class_available(prof,batches,day,slot,len(names),sem):
                     ans=False
             if ans:
                 slots.append((day,slot))
@@ -3741,17 +3741,9 @@ def assign_lecture(model):
         day,start_slot=random.choice(slots)
         hour-=1
         slots.remove((day,start_slot))
-        classroom=find_classroom(batches,day,start_slot,len(lab_ids))
+        classroom=find_classroom(batches,day,start_slot,len(lab_ids),sem)
         for batch in batches:
             for name, proff, i in zip(names, prof_ids, range(len(names))):
-                print(batch.id)
-                print(model.id)
-                print(proff)
-                print(day)
-                print(start_slot)
-                print(classroom[i])
-                print(sem)
-                print(i+1)
                 new_schedule = Schedule(
                     name=name,
                     batch_id=batch.id,
@@ -3771,30 +3763,30 @@ def assign_lecture(model):
                     db.session.rollback()
                     flash('Error scheduling priority course (2-hour consecutive)', 'error')
 
-def class_available_tutorial(batches,day,slot,count):
+def class_available_tutorial(batches,day,slot,count,sem):
     ids = [1,2,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,43,44,45]
     classrooms = Classroom.query.filter(Classroom.id.in_(ids)).all()
 
     for batch in batches:
-        done=Schedule.query.filter_by(day=day,slot=slot,batch_id=batch.id).first()
+        done=Schedule.query.filter_by(day=day,slot=slot,batch_id=batch.id,semester=sem).first()
         if done:
             return False
     cnt=0
     for classroom in classrooms:
-        done=Schedule.query.filter_by(day=day,slot=slot,classroom_id=classroom.id).first()
+        done=Schedule.query.filter_by(day=day,slot=slot,classroom_id=classroom.id,semester=sem).first()
         if not done:
             cnt+=1
 
     return cnt>=count
 
-def find_classroom_tutorial(batches,day,slot,count):
+def find_classroom_tutorial(batches,day,slot,count,sem):
     ids = [1,2,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,43,44,45]
 
     classrooms = Classroom.query.filter(Classroom.id.in_(ids)).all()
 
     clas=[]
     for classroom in classrooms:
-        done=Schedule.query.filter_by(day=day,slot=slot,classroom_id=classroom.id).first()
+        done=Schedule.query.filter_by(day=day,slot=slot,classroom_id=classroom.id,semester=sem).first()
         if not done:
             clas.append(classroom)
 
@@ -3838,7 +3830,7 @@ def assign_tutorial(model):
                 continue
             ans=True
             for prof in prof_ids:
-                if not class_available_tutorial(batches,day,slot,len(names)):
+                if not class_available_tutorial(batches,day,slot,len(names),sem):
                     ans=False
             if ans:
                 slots.append((day,slot))
@@ -3848,17 +3840,9 @@ def assign_tutorial(model):
         day,start_slot=random.choice(slots)
         hour-=1
         slots.remove((day,start_slot))
-        classroom=find_classroom_tutorial(batches,day,start_slot,len(lab_ids))
+        classroom=find_classroom_tutorial(batches,day,start_slot,len(lab_ids),sem)
         for batch in batches:
             for name, proff, i in zip(names, prof_ids, range(len(names))):
-                print(batch.id)
-                print(model.id)
-                print(proff)
-                print(day)
-                print(start_slot)
-                print(classroom[i])
-                print(sem)
-                print(i+1)
                 new_schedule = Schedule(
                     name=name,
                     batch_id=batch.id,
@@ -3878,7 +3862,6 @@ def assign_tutorial(model):
                 except:
                     db.session.rollback()
                     flash('Error scheduling priority course (2-hour consecutive)', 'error')
-
 
 def add_elective_course(model):
     if int(model.lab_hour)>0:
