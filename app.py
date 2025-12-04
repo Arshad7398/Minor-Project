@@ -156,9 +156,8 @@ class Elective(db.Model):
     lab_hour = db.Column(db.Integer, nullable=False)
     tutorial_hour = db.Column(db.Integer, nullable=False)
 
-
 def find_available_classroom_with_priorityroom(day, slot,classroom_id,batch,sem=False):
-    classrooms = Classroom.query.filter_by(building_id=classroom_id)
+    classrooms = Classroom.query.filter_by(building_id=classroom_id).all()
     for classroom in classrooms:
         if batch.capacity > classroom.capacity:
             continue
@@ -200,7 +199,7 @@ def find_available_classroom(day, slot , batch,sem=False):
     return None
 
 def find_available_classroom_with_priorityroom_onehour(day,slot,classroom_id,batch,sem=False):
-    classrooms = Classroom.query.filter_by(building_id=classroom_id)
+    classrooms = Classroom.query.filter_by(building_id=classroom_id).all()
     for classroom in classrooms:
         if batch.capacity > classroom.capacity:
             continue
@@ -265,30 +264,38 @@ def find_available_lab(day, slot,id,batch,sem,hour):
     return None
 
 def is_slot_available(course, day, slot, building_id,batch,sem=False):
+    # print("Start")
     if not batch:
         return False
+    # print("MID")
     existing_schedule = Schedule.query.filter_by(
-        batch_id=course["batch_id"], day=day, slot=slot,semester=sem
+        batch_id=batch.id, day=day, slot=slot,semester=sem
     ).first()
+    iid=course["professor_id"]
+    if iid=="":
+        iid=-1
     professor_schedule = Schedule.query.filter_by(
         professor_id=course["professor_id"], day=day, slot=slot,semester=sem
     ).first()
+    if iid==-1:
+        professor_schedule=None
+    # print(existing_schedule)
+    # print(professor_schedule)
     if existing_schedule or professor_schedule:
         return False
+    # print("END")
     classrooms=None
     if(building_id==-1):
         classrooms=Classroom.query.all()
     else :
         classrooms=Classroom.query.filter_by(building_id=building_id).all()
-
     for classroom in classrooms:
         if batch.capacity > classroom.capacity:
             continue
         classroom_schedule = Schedule.query.filter_by(
             classroom_id=classroom.id, day=day, slot=slot,semester=sem
         ).first()
-
-        if not classroom_schedule:
+        if classroom_schedule is None:
             return True
     return False
 
@@ -378,9 +385,22 @@ def is_slot_available_lab(course, day, slot,batch,sem,idd):
         second = Schedule.query.filter_by(
             batch_id=course.batch_id, day=day, slot=slot,semester=sem,divide_id=0
         ).first()
+
         professor_schedule = Schedule.query.filter_by(
             professor_id=course.lab_professor_id, day=day, slot=slot,semester=sem
         ).first()
+        iid=course.lab_professor_id
+        print("IID")
+        print(iid)
+        if iid=="":
+            iid=-1
+        print("IID")
+        print(iid)
+        professor_schedule = Schedule.query.filter_by(
+            professor_id=course.lab_professor_id, day=day, slot=slot,semester=sem
+        ).first()
+        if iid==-1:
+            professor_schedule=None
         if existing_schedule or professor_schedule or second:
             return False
 
@@ -1494,7 +1514,7 @@ def assign_priority_morning_courses(course,sem=False):
     if specific_professor is None:
         class DummyProf:
             priority_classroom_1 = course["p1"]
-            priority_classroom_2 = course["p3"]
+            priority_classroom_2 = course["p2"]
             priority_classroom_3 = course["p3"]
 
         specific_professor = DummyProf()
@@ -1875,7 +1895,7 @@ def assign_priority_evening_courses(course,sem=False):
     if specific_professor is None:
         class DummyProf:
             priority_classroom_1 = course["p1"]
-            priority_classroom_2 = course["p3"]
+            priority_classroom_2 = course["p2"]
             priority_classroom_3 = course["p3"]
 
         specific_professor = DummyProf()
@@ -2254,7 +2274,7 @@ def assign_only_priority(course,sem=False):
     if specific_professor is None:
         class DummyProf:
             priority_classroom_1 = course["p1"]
-            priority_classroom_2 = course["p3"]
+            priority_classroom_2 = course["p2"]
             priority_classroom_3 = course["p3"]
 
         specific_professor = DummyProf()
@@ -2580,7 +2600,7 @@ def assign_morning_only(course,sem=False):
     if specific_professor is None:
         class DummyProf:
             priority_classroom_1 = course["p1"]
-            priority_classroom_2 = course["p3"]
+            priority_classroom_2 = course["p2"]
             priority_classroom_3 = course["p3"]
 
         specific_professor = DummyProf()
@@ -2891,7 +2911,7 @@ def assign_evening_only(course,sem=False):
     if specific_professor is None:
         class DummyProf:
             priority_classroom_1 = course["p1"]
-            priority_classroom_2 = course["p3"]
+            priority_classroom_2 = course["p2"]
             priority_classroom_3 = course["p3"]
 
         specific_professor = DummyProf()
@@ -3199,32 +3219,47 @@ def assign_no_priority(course,sem=False):
     priority2_slots=[]
     priority3_slots=[]
     other_slots=[]
+    print("professor_id =", course["professor_id"])
     specific_professor = Professor.query.filter(Professor.id == course["professor_id"]).first()
+    print(specific_professor)
     if specific_professor is None:
         class DummyProf:
             priority_classroom_1 = course["p1"]
-            priority_classroom_2 = course["p3"]
+            priority_classroom_2 = course["p2"]
             priority_classroom_3 = course["p3"]
 
         specific_professor = DummyProf()
-    print(specific_professor)
+    print(specific_professor.priority_classroom_1)
+    print(specific_professor.priority_classroom_2)
+    print(specific_professor.priority_classroom_3)
+    print(course)
     for day in range(5):
         if day == course["avoid_day"]:
             continue 
         for slot in range(10):  # Check up to slot 7 for consecutive slots
             if sem==0 and slot==0:
                 continue
-            if slot != 5 and not (not sem and slot==0):
+            if slot != 5 :
+                # print("GOING")
                 if is_slot_available(course, day, slot,specific_professor.priority_classroom_1,batch,sem):
+                    # print("11")
                     priority1_slots.append((day, slot))
                 elif is_slot_available(course, day, slot,specific_professor.priority_classroom_2,batch,sem):
+                    # print("22")
                     priority2_slots.append((day, slot))
                 elif is_slot_available(course, day, slot,specific_professor.priority_classroom_3,batch,sem):
+                    # print("33")
                     priority3_slots.append((day, slot))
                 elif is_slot_available(course, day, slot,-1,batch,sem):
+                    # print("44")
                     other_slots.append((day,slot))
 
     days_done=[]
+
+    print(len(priority1_slots))
+    print(len(priority2_slots))
+    print(len(priority3_slots))
+    print(len(other_slots))
 
     while course["lecture_hour"]>0 and (priority1_slots or priority2_slots or priority3_slots or other_slots):
         day = None
@@ -3248,6 +3283,7 @@ def assign_no_priority(course,sem=False):
             priority3_slots = [slot for slot in priority3_slots if slot[0] != day]
             other_slots = [slot for slot in other_slots if slot[0] != day]
         elif other_slots:
+            print("DOING")
             day,start_slot = random.choice(other_slots)
             priority1_slots = [slot for slot in priority1_slots if slot[0] != day]
             priority2_slots = [slot for slot in priority2_slots if slot[0] != day]
@@ -3273,6 +3309,8 @@ def assign_no_priority(course,sem=False):
             decided_classroom=classroom3
         else:
             decided_classroom=last
+        if decided_classroom is None:
+            continue
         course["lecture_hour"]-=1
         new_schedule = Schedule(
             batch_id=course["batch_id"],
@@ -3360,7 +3398,7 @@ def assign_no_priority(course,sem=False):
             db.session.rollback()
             flash('Error scheduling priority course (2-hour consecutive)', 'error')
     
-
+    print(course["lecture_hour"])
     for day in range(6):
         for slot in range(10):  # Check up to slot 7 for consecutive slots
             if slot != 5:
@@ -3495,7 +3533,7 @@ def add_this_in_schedule(course,sem):
             "tutorial":c.tutorial,
             "divide":c.divide,
             "p1":c.priority_classroom_1,
-            "p3":c.priority_classroom_2,
+            "p2":c.priority_classroom_2,
             "p3":c.priority_classroom_3
         })
     
@@ -3531,31 +3569,35 @@ def add_this_in_schedule(course,sem):
                 assign_Lab(course,0,sem)
 
         for cours in priority_morning_courses:
+            print("pm")
             assign_priority_morning_courses(cours,sem)
             
         for cours in priority_evening_courses:
+            print("pe")
             assign_priority_evening_courses(cours,sem)
             
         for cours in only_priority:
+            print("p")
             assign_only_priority(cours,sem)
             
         for cours in morning_only:
+            print("m")
             assign_morning_only(cours,sem)
             
         for cours in evening_only:
+            print("e")
             assign_evening_only(cours,sem)
 
         for cours in no_priority:
+            print("no")
+            print(cours["name"])
             assign_no_priority(cours,sem)
         
         if course.divide and course.tutorial:
             for i in range(2):
                 assign_tutoriall(course,i+1,sem)
         elif course.tutorial:
-            print("TUTORIAL")
-            print(course)
             assign_tutoriall(course,0,sem)
-            print(course.tutorial)
 
 def make_combined_schedule(sc):
     sem=sc.is_odd
@@ -4918,6 +4960,12 @@ def manage_batch(batch_id):
 
             if avoid_day:
                 avoid_day = int(avoid_day)
+            else:
+                avoid_day=-1
+            if not professor_id:
+                professor_id=-1
+            if not lab_professor_id:
+                lab_professor_id=-1
 
             if course_name :
                 new_course = Course(
