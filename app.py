@@ -3679,7 +3679,7 @@ def class_available(prof,batches,day,slot,count,sem):
     return cnt>=count
 
 def find_classroom(batches,day,slot,count,sem):
-    ids = [1,2,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,43,44,45]
+    ids = [11,12,13,14,15,16,17,18,19,20,21,43,44,45,5,6,7,8,9,10]
 
     classrooms = Classroom.query.filter(Classroom.id.in_(ids)).all()
 
@@ -3780,7 +3780,7 @@ def class_available_tutorial(batches,day,slot,count,sem):
     return cnt>=count
 
 def find_classroom_tutorial(batches,day,slot,count,sem):
-    ids = [1,2,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,43,44,45]
+    ids = [11,12,13,14,15,16,17,18,19,20,21,43,44,45,5,6,7,8,9,10]
 
     classrooms = Classroom.query.filter(Classroom.id.in_(ids)).all()
 
