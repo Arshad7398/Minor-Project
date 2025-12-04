@@ -307,21 +307,22 @@ def is_slot_available_lab_priority1(course, day, slot,batch,sem,idd):
     if not batch:
         return False
     
-    for i in range(course.lab_hour):
-        existing_schedule = Schedule.query.filter_by(
-            batch_id=course.batch_id, day=day, slot=slot,semester=sem,divide_id=idd
-        ).first()
-        second = Schedule.query.filter_by(
-            batch_id=course.batch_id, day=day, slot=slot,semester=sem,divide_id=0
-        ).first()
-        professor_schedule = Schedule.query.filter_by(
-            professor_id=course.lab_professor_id, day=day, slot=slot,semester=sem
-        ).first()
-        lab_schedule = Schedule.query.filter_by(
-            lab_id=course.lab_id1, day=day, slot=slot,semester=sem
-        ).first()
-        if existing_schedule or professor_schedule or lab_schedule or second:
-            return False
+    existing_schedule = Schedule.query.filter_by(
+        batch_id=course.batch_id, day=day, slot=slot,semester=sem,divide_id=idd
+    ).first()
+    second = Schedule.query.filter_by(
+        batch_id=course.batch_id, day=day, slot=slot,semester=sem,divide_id=0
+    ).first()
+    professor_schedule = Schedule.query.filter_by(
+        professor_id=course.lab_professor_id, day=day, slot=slot,semester=sem
+    ).first()
+    if course.lab_professor_id==-1:
+        professor_schedule=None
+    lab_schedule = Schedule.query.filter_by(
+        lab_id=course.lab_id1, day=day, slot=slot,semester=sem
+    ).first()
+    if existing_schedule or professor_schedule or lab_schedule or second:
+        return False
 
     return True
 
@@ -333,21 +334,23 @@ def is_slot_available_lab_priority2(course, day, slot,batch,sem,idd):
     if not batch:
         return False
     
-    for i in range(course.lab_hour):
-        existing_schedule = Schedule.query.filter_by(
-            batch_id=course.batch_id, day=day, slot=slot,semester=sem,divide_id=idd
-        ).first()
-        second = Schedule.query.filter_by(
-            batch_id=course.batch_id, day=day, slot=slot,semester=sem,divide_id=0
-        ).first()
-        professor_schedule = Schedule.query.filter_by(
-            professor_id=course.lab_professor_id, day=day, slot=slot,semester=sem
-        ).first()
-        lab_schedule = Schedule.query.filter_by(
-            lab_id=course.lab_id2, day=day, slot=slot,semester=sem
-        ).first()
-        if existing_schedule or professor_schedule or lab_schedule or second:
-            return False
+    
+    existing_schedule = Schedule.query.filter_by(
+        batch_id=course.batch_id, day=day, slot=slot,semester=sem,divide_id=idd
+    ).first()
+    second = Schedule.query.filter_by(
+        batch_id=course.batch_id, day=day, slot=slot,semester=sem,divide_id=0
+    ).first()
+    professor_schedule = Schedule.query.filter_by(
+        professor_id=course.lab_professor_id, day=day, slot=slot,semester=sem
+    ).first()
+    if course.lab_professor_id==-1:
+        professor_schedule=None
+    lab_schedule = Schedule.query.filter_by(
+        lab_id=course.lab_id2, day=day, slot=slot,semester=sem
+    ).first()
+    if existing_schedule or professor_schedule or lab_schedule or second:
+        return False
 
     return True
 
@@ -359,21 +362,23 @@ def is_slot_available_lab_priority3(course, day, slot,batch,sem,idd):
     if not batch:
         return False
     
-    for i in range(course.lab_hour):
-        existing_schedule = Schedule.query.filter_by(
-            batch_id=course.batch_id, day=day, slot=slot,semester=sem,divide_id=idd
-        ).first()
-        second = Schedule.query.filter_by(
-            batch_id=course.batch_id, day=day, slot=slot,semester=sem,divide_id=0
-        ).first()
-        professor_schedule = Schedule.query.filter_by(
-            professor_id=course.lab_professor_id, day=day, slot=slot,semester=sem
-        ).first()
-        lab_schedule = Schedule.query.filter_by(
-            lab_id=course.lab_id1, day=day, slot=slot,semester=sem
-        ).first()
-        if existing_schedule or professor_schedule or lab_schedule or second:
-            return False
+    
+    existing_schedule = Schedule.query.filter_by(
+        batch_id=course.batch_id, day=day, slot=slot,semester=sem,divide_id=idd
+    ).first()
+    second = Schedule.query.filter_by(
+        batch_id=course.batch_id, day=day, slot=slot,semester=sem,divide_id=0
+    ).first()
+    professor_schedule = Schedule.query.filter_by(
+        professor_id=course.lab_professor_id, day=day, slot=slot,semester=sem
+    ).first()
+    if course.lab_professor_id==-1:
+        professor_schedule=None
+    lab_schedule = Schedule.query.filter_by(
+        lab_id=course.lab_id1, day=day, slot=slot,semester=sem
+    ).first()
+    if existing_schedule or professor_schedule or lab_schedule or second:
+        return False
 
     return True
 
@@ -1067,7 +1072,7 @@ def assign_Lab(course,idd,sem=False):
                 continue
             done=True
             for i in range(course.lab_hour):
-                if slot+i==5 or slot+i==0 or slot+i==10:
+                if slot+i==5 or slot+i==10:
                     done=False
                 done=done and is_slot_available_lab_priority1(course, day, slot+i,batch,sem,idd)
             if done:
@@ -1118,8 +1123,11 @@ def assign_Lab(course,idd,sem=False):
             if done:
                 other.append((day, slot))
                 
-
-
+    print("LABS")
+    print(len(morning_labp1))
+    print(len(morning_labp2))
+    print(len(morning_labp3))
+    print(len(other))
     day = None
     start_slot = None
     lab_assigned=None
